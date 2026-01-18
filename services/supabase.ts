@@ -1,8 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://dczjsumagxjswctjjmhf.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_DVpKI-tMYS5q7y30WLN2ig_6lmBP6GS';
+// Usar variáveis de ambiente em produção, com fallback para desenvolvimento
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dczjsumagxjswctjjmhf.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_DVpKI-tMYS5q7y30WLN2ig_6lmBP6GS';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

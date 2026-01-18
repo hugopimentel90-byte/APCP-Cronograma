@@ -16,7 +16,7 @@ import ResourceModal from './components/ResourceModal';
 import TaskCompletionModal from './components/TaskCompletionModal';
 import BaselineTab from './components/BaselineTab';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
-import { db } from './APCP-Cronograma/services/supabase';
+import { db } from './services/supabase';
 
 type TabType = 'dashboard' | 'tasks' | 'gantt' | 'baseline' | 'history' | 'resources' | 'notes' | 'registros';
 
