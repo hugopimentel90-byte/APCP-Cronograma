@@ -610,7 +610,10 @@ const App: React.FC = () => {
               }}
             />
           )}
-          {activeTab === 'history' && <HistoryTab history={filteredHistory} />}
+          {activeTab === 'history' && <HistoryTab history={filteredHistory} onDeleteHistory={async (id) => {
+            setHistory(prev => prev.filter(h => h.id !== id));
+            if (cloudEnabled) syncToCloud(() => db.deleteHistory(id));
+          }} />}
           {activeTab === 'notes' && <NotesTab notes={filteredNotes} />}
           {activeTab === 'registros' && (
             <RegistrosTab

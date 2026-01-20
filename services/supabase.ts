@@ -162,6 +162,10 @@ export const db = {
     });
     if (error) throw error;
   },
+  deleteHistory: async (id: string) => {
+    const { error } = await supabase.from('history').delete().eq('id', id);
+    if (error) throw error;
+  },
   getNotes: async () => {
     const { data, error } = await supabase.from('notes').select('*');
     if (error) throw error;
