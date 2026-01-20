@@ -27,7 +27,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
   const [initialMouseX, setInitialMouseX] = useState(0);
   const [initialTaskDates, setInitialTaskDates] = useState<{ start: Date; end: Date } | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
-  
+
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [dayWidth, setDayWidth] = useState(40);
   const [isExporting, setIsExporting] = useState(false);
@@ -97,12 +97,12 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
     const dates = tasks
       .flatMap(t => [parseLocalDate(t.startDate), parseLocalDate(t.endDate)])
       .filter(d => !isNaN(d.getTime()));
-    
+
     if (dates.length === 0) return { minDate: new Date(), maxDate: new Date() };
 
     const min = new Date(Math.min(...dates.map(d => d.getTime())));
     const max = new Date(Math.max(...dates.map(d => d.getTime())));
-    
+
     const marginDays = Math.max(15, Math.ceil(400 / Math.max(dayWidth, 0.1)));
     min.setDate(min.getDate() - 5);
     max.setDate(max.getDate() + marginDays);
@@ -117,7 +117,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
 
   const timelineDays = useMemo(() => {
     const days = [];
-    const safeTotalDays = Math.min(totalDays, 40000); 
+    const safeTotalDays = Math.min(totalDays, 40000);
     for (let i = 0; i <= safeTotalDays; i++) {
       days.push(addDays(minDate, i));
     }
@@ -130,7 +130,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
    */
   const criticalTaskIds = useMemo(() => {
     if (!tasks || tasks.length === 0) return new Set<string>();
-    
+
     const taskMap = new Map<string, Task>(tasks.map(t => [t.id, t]));
     const criticalIds = new Set<string>();
 
@@ -155,27 +155,27 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
     const queue: string[] = tasks
       .filter(t => parseLocalDate(t.endDate).getTime() === projectEndMs)
       .map(t => t.id);
-    
+
     const visited = new Set<string>();
-    
+
     while (queue.length > 0) {
       const currentId = queue.shift()!;
       if (visited.has(currentId)) continue;
       visited.add(currentId);
-      
+
       const currentTask = taskMap.get(currentId);
       if (!currentTask) continue;
-      
+
       criticalIds.add(currentId);
-      
+
       // Retroceder para as predecessoras
       (currentTask.dependencies || []).forEach(dep => {
         const pred = taskMap.get(dep.taskId);
         if (!pred) return;
-        
+
         const predEnd = parseLocalDate(pred.endDate);
         const currentStart = parseLocalDate(currentTask.startDate);
-        
+
         // Critério de folga zero (FS: predEnd e currentStart são adjacentes)
         // Usamos uma margem de 1 dia para considerar calendários e feriados flexíveis
         const slack = daysDiff(predEnd, currentStart);
@@ -192,10 +192,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
     // Se uma tarefa sumário (EAP) tem um filho crítico, ela também é considerada no caminho crítico
     // para fins de destaque visual de estrutura
     tasks.forEach(t => {
-        if (t.hasChildren || parentIds.has(t.id)) {
-            const hasCriticalChild = tasks.some(child => child.parentId === t.id && criticalIds.has(child.id));
-            if (hasCriticalChild) criticalIds.add(t.id);
-        }
+      if (t.hasChildren || parentIds.has(t.id)) {
+        const hasCriticalChild = tasks.some(child => child.parentId === t.id && criticalIds.has(child.id));
+        if (hasCriticalChild) criticalIds.add(t.id);
+      }
     });
 
     return criticalIds;
@@ -208,7 +208,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
     const s = parseLocalDate(task.startDate);
     const end = parseLocalDate(task.endDate);
     if (isNaN(s.getTime()) || isNaN(end.getTime())) return;
-    
+
     setDraggingTask(taskId);
     setDragType(type);
     setInitialMouseX(e.clientX);
@@ -219,27 +219,27 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingTask || !initialTaskDates || !dragType) return;
-      
+
       const deltaX = e.clientX - initialMouseX;
       const daysDelta = Math.round(deltaX / dayWidth);
       if (daysDelta === 0 && !dragPreview) return;
-      
+
       let newStart = new Date(initialTaskDates.start);
       let newEnd = new Date(initialTaskDates.end);
-      
-      if (dragType === 'move') { 
-        newStart = addDays(initialTaskDates.start, daysDelta); 
-        newEnd = addDays(initialTaskDates.end, daysDelta); 
+
+      if (dragType === 'move') {
+        newStart = addDays(initialTaskDates.start, daysDelta);
+        newEnd = addDays(initialTaskDates.end, daysDelta);
       }
-      else if (dragType === 'resize-left') { 
-        newStart = addDays(initialTaskDates.start, daysDelta); 
-        if (newStart > newEnd) newStart = new Date(newEnd); 
+      else if (dragType === 'resize-left') {
+        newStart = addDays(initialTaskDates.start, daysDelta);
+        if (newStart > newEnd) newStart = new Date(newEnd);
       }
-      else if (dragType === 'resize-right') { 
-        newEnd = addDays(initialTaskDates.end, daysDelta); 
-        if (newEnd < newStart) newEnd = new Date(newStart); 
+      else if (dragType === 'resize-right') {
+        newEnd = addDays(initialTaskDates.end, daysDelta);
+        if (newEnd < newStart) newEnd = new Date(newStart);
       }
-      
+
       setDragPreview({
         id: draggingTask,
         startDate: formatDate(newStart),
@@ -252,11 +252,11 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       if (draggingTask && dragPreview) {
         const task = tasks.find(t => t.id === draggingTask);
         if (task) {
-          onTaskChange({ 
-            ...task, 
-            startDate: dragPreview.startDate, 
-            endDate: dragPreview.endDate, 
-            duration: dragPreview.duration 
+          onTaskChange({
+            ...task,
+            startDate: dragPreview.startDate,
+            endDate: dragPreview.endDate,
+            duration: dragPreview.duration
           });
         }
       }
@@ -266,13 +266,13 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       setDragPreview(null);
     };
 
-    if (draggingTask) { 
-      window.addEventListener('mousemove', handleMouseMove); 
-      window.addEventListener('mouseup', handleMouseUp); 
+    if (draggingTask) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
     }
-    return () => { 
-      window.removeEventListener('mousemove', handleMouseMove); 
-      window.removeEventListener('mouseup', handleMouseUp); 
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [draggingTask, initialMouseX, initialTaskDates, dragType, tasks, onTaskChange, dayWidth, dragPreview]);
 
@@ -287,15 +287,15 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         const predEnd = parseLocalDate(pred.endDate);
         const taskStart = parseLocalDate(task.startDate);
         if (isNaN(predEnd.getTime()) || isNaN(taskStart.getTime())) return;
-        
+
         const predXEnd = daysDiff(minDate, predEnd) * dayWidth + (dayWidth / 2);
         const predY = predIndex * rowHeight + rowHeight / 2;
         const succXStart = daysDiff(minDate, taskStart) * dayWidth;
         const succY = idx * rowHeight + rowHeight / 2;
-        
+
         // Uma dependência é crítica se AMBAS as tarefas forem críticas e a folga entre elas for zero/mínima
         const isCriticalLine = criticalTaskIds.has(task.id) && criticalTaskIds.has(pred.id) && daysDiff(predEnd, taskStart) <= 1;
-        
+
         let d = `M ${predXEnd} ${predY} L ${predXEnd + 10} ${predY} L ${predXEnd + 10} ${succY} L ${succXStart} ${succY}`;
         paths.push(<path key={`${pred.id}-${task.id}`} d={d} fill="none" stroke={isCriticalLine ? "#f43f5e" : "#94a3b8"} strokeWidth={isCriticalLine ? "2.5" : "1.5"} markerEnd={`url(#arrowhead-${isCriticalLine ? 'critical' : 'normal'})`} />);
       });
@@ -319,7 +319,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
           const sidebar = clonedDoc.querySelector('.gantt-sidebar') as HTMLElement;
           const container = clonedDoc.querySelector('.gantt-export-container') as HTMLElement;
           const headers = clonedDoc.querySelectorAll('.sticky') as NodeListOf<HTMLElement>;
-          
+
           if (sidebar) {
             sidebar.style.position = 'relative';
             sidebar.style.width = '700px';
@@ -382,26 +382,26 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         );
         isMajor = day.getDay() === 0 || day.getDay() === 6;
       } else if (dayWidth >= 8) {
-        if (day.getDay() === 1) { 
+        if (day.getDay() === 1) {
           label = <span className="text-[9px] font-bold text-gray-600 whitespace-nowrap">{day.getDate()}/{day.getMonth() + 1}</span>;
           isMajor = true;
         }
       } else if (dayWidth >= 2) {
-        if (day.getDate() === 1) { 
+        if (day.getDate() === 1) {
           label = <span className="text-[9px] font-bold text-gray-600 whitespace-nowrap">{day.toLocaleDateString('pt-BR', { month: 'short' })}</span>;
           isMajor = true;
         }
       } else {
-        if (day.getDate() === 1 && day.getMonth() === 0) { 
+        if (day.getDate() === 1 && day.getMonth() === 0) {
           label = <span className="text-[10px] font-bold text-gray-800">{day.getFullYear()}</span>;
           isMajor = true;
         }
       }
 
       return (
-        <div 
-          key={i} 
-          className={`flex-shrink-0 border-r flex flex-col items-center justify-center transition-all duration-200 ${isMajor ? 'bg-gray-100/50' : ''}`} 
+        <div
+          key={i}
+          className={`flex-shrink-0 border-r flex flex-col items-center justify-center transition-all duration-200 ${isMajor ? 'bg-gray-100/50' : ''}`}
           style={{ width: dayWidth }}
         >
           {label}
@@ -427,7 +427,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
             <span className="text-red-600 font-bold uppercase tracking-tight">Atrasada</span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
             {(['day', 'week', 'month', 'year'] as ViewMode[]).map((mode) => (
@@ -451,7 +451,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
             </button>
           </div>
 
-          <button 
+          <button
             onClick={handleExportPDF}
             disabled={isExporting}
             className={`flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg shadow-lg transition-all font-bold active:transform active:scale-95 no-print ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -469,10 +469,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       </div>
 
       <div className="flex-1 overflow-auto gantt-scroll-container" ref={containerRef}>
-        <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container">
-          <div className="sticky left-0 z-20 bg-white border-r w-80 lg:w-96 flex-shrink-0 gantt-sidebar shadow-md transition-all duration-300">
-            <div 
-              className="border-b flex items-center px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[10px] tracking-wider sticky top-0 z-30" 
+        <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container relative">
+          <div className="sticky left-0 z-40 bg-white border-r w-80 lg:w-96 flex-shrink-0 gantt-sidebar shadow-[4px_0_10px_rgba(0,0,0,0.05)] transition-none uppercase">
+            <div
+              className="border-b flex items-center px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[10px] tracking-wider sticky top-0 z-50 border-r"
               style={{ height: rowHeight }}
             >
               Estrutura EAP / Tarefa
@@ -481,14 +481,14 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
               const level = task.level || 0;
               const isSummary = task.hasChildren || parentIds.has(task.id);
               const isCritical = criticalTaskIds.has(task.id);
-              
+
               return (
-                <div 
-                  key={task.id} 
-                  className={`border-b flex items-center pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-sm' : 'text-gray-600 text-[11px]'}`}
-                  style={{ 
-                    height: rowHeight, 
-                    paddingLeft: `${16 + level * 20}px` 
+                <div
+                  key={task.id}
+                  className={`border-b border-r flex items-center pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-sm' : 'text-gray-600 text-[11px]'}`}
+                  style={{
+                    height: rowHeight,
+                    paddingLeft: `${16 + level * 20}px`
                   }}
                 >
                   <div className="flex items-center gap-2 overflow-hidden w-full h-full">
@@ -517,10 +517,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
             <div className="relative" style={{ height: (tasks?.length || 0) * rowHeight, width: Math.max(0, (totalDays + 1) * dayWidth) }}>
               <div className="absolute inset-0 flex pointer-events-none">
                 {timelineDays.map((_, i) => (
-                  <div 
-                    key={i} 
-                    className={`border-r h-full ${dayWidth > 15 ? 'opacity-30' : 'opacity-10'}`} 
-                    style={{ width: dayWidth }} 
+                  <div
+                    key={i}
+                    className={`border-r h-full ${dayWidth > 15 ? 'opacity-30' : 'opacity-10'}`}
+                    style={{ width: dayWidth }}
                   />
                 ))}
               </div>
@@ -564,7 +564,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
                         <div className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize hover:bg-black/10 rounded-r" onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task.id, 'resize-right'); }} />
 
                         {isCritical && !task.isMilestone && (
-                            <div className="absolute inset-0 rounded-md border-2 border-rose-400/50 pointer-events-none" />
+                          <div className="absolute inset-0 rounded-md border-2 border-rose-400/50 pointer-events-none" />
                         )}
 
                         {isTaskOverdue && (
@@ -577,14 +577,14 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
                         )}
 
                         {!task.isMilestone && task.progress > 0 && (
-                          <div 
+                          <div
                             className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-slate-900 rounded-full left-1 opacity-90 transition-all pointer-events-none flex items-center"
                             style={{ width: `calc(${Math.min(100, task.progress)}% - 8px)`, minWidth: '4px' }}
                           >
                             <div className="h-full w-full bg-slate-900 rounded-full" />
                           </div>
                         )}
-                        
+
                         {!task.isMilestone && (
                           <div className="h-full rounded-l-md pointer-events-none opacity-20 bg-black/10" style={{ width: `${Math.min(100, task.progress)}%` }} />
                         )}
@@ -597,7 +597,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
           </div>
         </div>
       </div>
-      
+
       <style>{`
         @media print {
           .no-print { display: none !important; }
