@@ -469,10 +469,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       </div>
 
       <div className="flex-1 overflow-auto gantt-scroll-container" ref={containerRef}>
-        <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container relative">
-          <div className="sticky left-0 z-40 bg-white border-r w-80 lg:w-96 flex-shrink-0 gantt-sidebar shadow-[4px_0_10px_rgba(0,0,0,0.05)] transition-none uppercase">
+        <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container">
+          <div className="sticky left-0 z-30 bg-white border-r w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
             <div
-              className="border-b flex items-center px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[10px] tracking-wider sticky top-0 z-50 border-r"
+              className="border-b flex items-center px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[10px] tracking-wider sticky top-0 z-40"
               style={{ height: rowHeight }}
             >
               Estrutura EAP / Tarefa
@@ -485,7 +485,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
               return (
                 <div
                   key={task.id}
-                  className={`border-b border-r flex items-center pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-sm' : 'text-gray-600 text-[11px]'}`}
+                  className={`border-b flex items-center pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-sm' : 'text-gray-600 text-[11px]'}`}
                   style={{
                     height: rowHeight,
                     paddingLeft: `${16 + level * 20}px`
