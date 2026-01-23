@@ -51,7 +51,8 @@ const mapTask = {
     realized_man_hours: t.realizedManHours,
     realized_resource_ids: t.realizedResourceIds,
     realized_cost: t.realizedCost,
-    images: t.images || [] // JSONB column handles array of objects
+    images: t.images || [], // JSONB column handles array of objects
+    order_index: t.orderIndex || 0
   }),
   fromDB: (t: any) => ({
     id: t.id,
@@ -71,7 +72,8 @@ const mapTask = {
     realizedManHours: t.realized_man_hours,
     realizedResourceIds: t.realized_resource_ids,
     realizedCost: t.realized_cost,
-    images: t.images || []
+    images: t.images || [],
+    orderIndex: t.order_index || 0
   })
 };
 

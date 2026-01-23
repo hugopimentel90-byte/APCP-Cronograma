@@ -63,6 +63,7 @@ export interface Task {
   realizedResourceIds?: string[]; // Actual resources used
   realizedCost?: number; // Actual cost recorded
   images?: TaskImage[]; // Photographic evidence
+  orderIndex?: number;
 }
 
 export interface TaskHistoryEntry {
