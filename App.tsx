@@ -697,7 +697,10 @@ const App: React.FC = () => {
             setHistory(prev => prev.filter(h => h.id !== id));
             if (cloudEnabled) syncToCloud(() => db.deleteHistory(id));
           }} />}
-          {activeTab === 'notes' && <NotesTab notes={filteredNotes} />}
+          {activeTab === 'notes' && <NotesTab notes={filteredNotes} onDeleteNote={async (id) => {
+            setNotes(prev => prev.filter(n => n.id !== id));
+            if (cloudEnabled) syncToCloud(() => db.deleteNote(id));
+          }} />}
           {activeTab === 'registros' && (
             <RegistrosTab
               tasks={activeTasks}

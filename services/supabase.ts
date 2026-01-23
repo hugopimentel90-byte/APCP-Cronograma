@@ -190,5 +190,9 @@ export const db = {
       timestamp: n.timestamp
     });
     if (error) throw error;
+  },
+  deleteNote: async (id: string) => {
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) throw error;
   }
 };
