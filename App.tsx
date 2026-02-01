@@ -644,11 +644,11 @@ const App: React.FC = () => {
                                   </button>
                                 )}
                                 <span className={`${task.level === 0
-                                  ? 'text-sm lg:text-lg font-bold text-slate-900 leading-tight block'
+                                  ? 'text-sm lg:text-lg font-extrabold text-slate-900 leading-tight block'
                                   : task.hasChildren
                                     ? 'text-xs lg:text-sm font-bold text-slate-800'
                                     : 'text-xs lg:text-sm text-slate-600'
-                                  } flex items-center gap-1.5 lg:gap-2 whitespace-normal break-words`}>
+                                  } flex items-center gap-1.5 lg:gap-2 whitespace-normal break-words overflow-visible`}>
                                   {task.name}
                                   {overdue && (
                                     <span className="shrink-0 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold uppercase animate-pulse">
