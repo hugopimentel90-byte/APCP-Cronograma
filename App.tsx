@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [isTaskDeleteModalOpen, setIsTaskDeleteModalOpen] = useState(false);
   const [isResourceDeleteModalOpen, setIsResourceDeleteModalOpen] = useState(false);
   const [isProjectDeleteModalOpen, setIsProjectDeleteModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -57,7 +58,7 @@ const App: React.FC = () => {
     let mounted = true;
     const fetchData = async () => {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout ao conectar com o servidor")), 8000)
+        setTimeout(() => reject(new Error("Timeout ao conectar com o servidor")), 15000)
       );
       try {
         const results: any = await Promise.race([
@@ -78,7 +79,11 @@ const App: React.FC = () => {
 
           if (pRes.value?.length > 0) {
             setProjects(pRes.value);
-            setActiveProjectId(pRes.value[0].id);
+            // Tenta manter o projeto ativo anterior ou o primeiro da lista
+            setActiveProjectId(prev => {
+              const exists = pRes.value.find((p: Project) => p.id === prev);
+              return exists ? prev : pRes.value[0].id;
+            });
           }
         }
         if (tRes.status === 'fulfilled' && tRes.value?.length > 0) setTasks(tRes.value);
@@ -449,8 +454,17 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <aside className={`bg-white border-r flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[100] lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop and Mobile (Slide-over) */}
+      <aside className={`fixed inset-y-0 left-0 z-[101] bg-white border-r flex flex-col transition-all duration-300 lg:static lg:translate-x-0 ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}`}>
         <div className="p-6 border-b flex items-center justify-between">
           {!isSidebarCollapsed && <h1 className="text-xl font-bold text-blue-600">Projetos MB</h1>}
           <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-1.5 rounded hover:bg-gray-100">
@@ -468,8 +482,15 @@ const App: React.FC = () => {
             { id: 'registros', label: 'Registros', icon: IconCamera },
             { id: 'resources', label: 'Recursos', icon: IconResources },
           ].map((item) => (
-            <button key={item.id} onClick={() => setActiveTab(item.id as TabType)} className={`w-full flex items-center rounded-lg px-4 py-3 text-sm font-medium ${activeTab === item.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
-              <item.icon className="w-5 h-5 mr-3 shrink-0" /> {!isSidebarCollapsed && item.label}
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id as TabType);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center rounded-lg px-4 py-3 text-sm font-medium ${activeTab === item.id ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              <item.icon className="w-5 h-5 mr-3 shrink-0" /> {(!isSidebarCollapsed || isMobileMenuOpen) && item.label}
             </button>
           ))}
         </nav>
@@ -487,35 +508,57 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <header className="h-16 bg-white border-b px-8 flex items-center justify-between shadow-sm z-10">
-          <div className="flex items-center gap-4">
-            <select className="font-bold text-gray-700 border-none bg-transparent cursor-pointer outline-none" value={activeProjectId} onChange={(e) => setActiveProjectId(e.target.value)}>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[activeProject.status]}`}>{activeProject.status}</span>
+        <header className="h-16 bg-white border-b px-4 lg:px-8 flex items-center justify-between shadow-sm z-[100] w-full">
+          <div className="flex items-center gap-2 lg:gap-4 flex-1 min-w-0">
+            {/* Mobile Toggle */}
             <button
-              onClick={() => setIsProjectEditModalOpen(true)}
-              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Editar Projeto"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg shrink-0"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <button
-              onClick={() => setIsProjectDeleteModalOpen(true)}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Excluir Projeto"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2 lg:gap-4 flex-1 min-w-0">
+              <select
+                className="font-bold text-gray-700 border-none bg-transparent cursor-pointer outline-none text-sm lg:text-base max-w-[200px] lg:max-w-md truncate flex-shrink"
+                value={activeProjectId}
+                onChange={(e) => setActiveProjectId(e.target.value)}
+              >
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <span className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_COLORS[activeProject.status]}`}>
+                {activeProject.status}
+              </span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setIsProjectEditModalOpen(true)}
+                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Editar Projeto"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setIsProjectDeleteModalOpen(true)}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Excluir Projeto"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <button onClick={() => setIsNewProjectModalOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">Novo Projeto</button>
+          <button onClick={() => setIsNewProjectModalOpen(true)} className="bg-blue-600 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-700 transition-colors shrink-0">
+            <span className="hidden lg:inline">Novo Projeto</span>
+            <span className="lg:hidden">+ Novo</span>
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
           {activeTab === 'dashboard' && (
             <Dashboard
               project={activeProject}
@@ -537,19 +580,19 @@ const App: React.FC = () => {
                 </button>
               </div>
               <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left min-w-[1000px]">
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+                  <table className="w-full text-left min-w-[700px] lg:min-w-[1000px]">
                     <thead className="bg-gray-50 border-b">
-                      <tr className="text-[10px] uppercase text-gray-400 font-bold">
-                        <th className="px-6 py-4">Tarefa</th>
-                        <th className="px-4 py-4 text-center">Início</th>
-                        <th className="px-4 py-4 text-center">Término</th>
-                        <th className="px-4 py-4 text-center">Duração</th>
-                        <th className="px-4 py-4 text-center">HH Plan.</th>
-                        <th className="px-4 py-4 text-center">HH Real.</th>
-                        <th className="px-4 py-4">Recursos</th>
-                        <th className="px-6 py-4">Progresso</th>
-                        <th className="px-4 py-4 text-center">Ações</th>
+                      <tr className="text-[10px] uppercase text-gray-400 font-bold border-b bg-gray-50/50">
+                        <th className="px-4 lg:px-6 py-4 sticky left-0 bg-gray-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Tarefa</th>
+                        <th className="px-2 lg:px-4 py-4 text-center">Início</th>
+                        <th className="px-2 lg:px-4 py-4 text-center">Término</th>
+                        <th className="px-2 lg:px-4 py-4 text-center hidden sm:table-cell">Duração</th>
+                        <th className="px-2 lg:px-4 py-4 text-center hidden md:table-cell">HH Plan.</th>
+                        <th className="px-2 lg:px-4 py-4 text-center hidden md:table-cell">HH Real.</th>
+                        <th className="px-2 lg:px-4 py-4 hidden lg:table-cell">Recursos</th>
+                        <th className="px-4 lg:px-6 py-4">Progresso</th>
+                        <th className="px-2 lg:px-4 py-4 text-center sticky right-0 bg-gray-50 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -588,51 +631,50 @@ const App: React.FC = () => {
                             }}
                             className={`border-b hover:bg-slate-50 group transition-colors duration-200 ${overdue ? 'bg-red-50/30' : ''} ${isRoot ? 'cursor-move' : ''}`}
                           >
-                            <td className="px-6 py-4" style={{ paddingLeft: `${24 + task.level * 20}px` }}>
-                              <div className="flex items-center gap-2">
+                            <td className="px-4 lg:px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors" style={{ paddingLeft: `${16 + task.level * 16}px` }}>
+                              <div className="flex items-center gap-2 max-w-[150px] lg:max-w-none">
                                 {task.hasChildren && (
                                   <button onClick={() => toggleCollapse(task.id)} className="p-1 hover:bg-gray-200 rounded">
-                                    <svg className={`w-3.5 h-3.5 ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                    <svg className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                                   </button>
                                 )}
                                 <span className={`${task.level === 0
-                                  ? 'text-lg font-bold text-slate-900 leading-tight block'
+                                  ? 'text-sm lg:text-lg font-bold text-slate-900 leading-tight block'
                                   : task.hasChildren
-                                    ? 'text-sm font-bold text-slate-800'
-                                    : 'text-sm text-slate-600'
-                                  } flex items-center gap-2`}>
+                                    ? 'text-xs lg:text-sm font-bold text-slate-800'
+                                    : 'text-xs lg:text-sm text-slate-600'
+                                  } flex items-center gap-1.5 lg:gap-2 truncate`}>
                                   {task.name}
                                   {overdue && (
-                                    <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1 animate-pulse border border-red-200">
-                                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                      Atrasada
+                                    <span className="shrink-0 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold uppercase animate-pulse">
+                                      !
                                     </span>
                                   )}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-4 text-center text-xs text-gray-400">{task.startDate}</td>
-                            <td className={`px-4 py-4 text-center text-xs font-medium ${overdue ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{task.endDate}</td>
-                            <td className="px-4 py-4 text-center text-sm text-gray-500">{task.duration}d</td>
-                            <td className="px-4 py-4 text-center text-sm text-blue-600 font-bold">{task.manHours || 0}h</td>
-                            <td className="px-4 py-4 text-center text-sm text-green-600 font-bold">{task.realizedManHours || 0}h</td>
-                            <td className="px-4 py-4">
+                            <td className="px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs text-gray-400">{task.startDate}</td>
+                            <td className={`px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs font-medium ${overdue ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{task.endDate}</td>
+                            <td className="px-2 lg:px-4 py-4 text-center text-xs text-gray-500 hidden sm:table-cell">{task.duration}d</td>
+                            <td className="px-2 lg:px-4 py-4 text-center text-xs text-blue-600 font-bold hidden md:table-cell">{task.manHours || 0}h</td>
+                            <td className="px-2 lg:px-4 py-4 text-center text-xs text-green-600 font-bold hidden md:table-cell">{task.realizedManHours || 0}h</td>
+                            <td className="px-2 lg:px-4 py-4 hidden lg:table-cell">
                               <div className="flex -space-x-1.5">
                                 {getResourceInitials(task.resourceIds).map((init, i) => (
                                   <div key={i} className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold border-2 border-white">{init}</div>
                                 ))}
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <td className="px-4 lg:px-6 py-4">
+                              <div className="flex items-center gap-2 min-w-[80px]">
+                                <div className="flex-1 bg-gray-100 h-1 rounded-full overflow-hidden">
                                   <div className={`${overdue ? 'bg-red-500' : 'bg-blue-600'} h-full transition-all duration-300`} style={{ width: `${task.progress}%` }}></div>
                                 </div>
-                                <span className={`text-[10px] font-bold ${overdue ? 'text-red-500' : 'text-gray-400'}`}>{task.progress}%</span>
+                                <span className={`text-[9px] font-bold ${overdue ? 'text-red-500' : 'text-gray-400'}`}>{task.progress}%</span>
                               </div>
                             </td>
-                            <td className="px-4 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <td className="px-2 lg:px-4 py-4 text-center sticky right-0 bg-white group-hover:bg-slate-50 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors">
+                              <div className="flex items-center justify-center gap-0.5 lg:gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => { setTaskToEdit(null); setInitialParentId(task.id); setIsTaskModalOpen(true); }}
                                   className="p-1.5 text-green-600 hover:bg-green-50 rounded"
@@ -799,7 +841,7 @@ const App: React.FC = () => {
       />
 
       <ChangeReasonModal isOpen={isReasonModalOpen} taskName={pendingChange?.updatedTask.name || ''} onConfirm={handleConfirmChange} onCancel={() => { setIsReasonModalOpen(false); setPendingChange(null); }} />
-    </div>
+    </div >
   );
 };
 

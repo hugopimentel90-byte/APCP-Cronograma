@@ -412,41 +412,40 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
 
   return (
     <div className="flex flex-col h-full bg-white border rounded-lg shadow-sm overflow-hidden select-none printable-gantt">
-      <div className="bg-gray-50 border-b px-4 py-3 flex items-center justify-between text-xs no-print">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-            <span className="font-medium text-gray-700">Fluxo Normal</span>
+      <div className="bg-gray-50 border-b px-2 lg:px-4 py-3 flex flex-col sm:flex-row items-center justify-between text-[10px] lg:text-xs no-print gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-3 lg:gap-6">
+          <div className="flex items-center gap-1.5 lg:gap-2">
+            <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 bg-blue-500 rounded-sm"></div>
+            <span className="font-medium text-gray-700">Normal</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-rose-500 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
-            <span className="text-rose-600 font-bold uppercase tracking-tight">Caminho Crítico</span>
+          <div className="flex items-center gap-1.5 lg:gap-2">
+            <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 bg-rose-500 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
+            <span className="text-rose-600 font-bold uppercase tracking-tight">Crítico</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-100 border border-red-500 rounded-sm"></div>
+          <div className="flex items-center gap-1.5 lg:gap-2">
+            <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 bg-orange-100 border border-red-500 rounded-sm"></div>
             <span className="text-red-600 font-bold uppercase tracking-tight">Atrasada</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div className="flex flex-wrap items-center justify-center gap-2 lg:gap-4 w-full sm:w-auto">
+          <div className="flex items-center p-0.5 lg:p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
             {(['day', 'week', 'month', 'year'] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => handleViewModeChange(mode)}
-                className={`px-3 py-1 rounded-md font-medium transition-all ${viewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+                className={`px-2 lg:px-3 py-1 rounded-md font-medium transition-all ${viewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
               >
-                {mode === 'day' ? 'Dia' : mode === 'week' ? 'Semana' : mode === 'month' ? 'Mês' : 'Ano'}
+                {mode === 'day' ? 'D' : mode === 'week' ? 'S' : mode === 'month' ? 'M' : 'A'}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-            <span className="px-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Zoom</span>
-            <button onClick={zoomOut} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Encolher">
+          <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg p-0.5 lg:p-1 shadow-sm">
+            <button onClick={zoomOut} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
             </button>
-            <button onClick={zoomIn} className="p-1.5 hover:bg-gray-100 rounded text-gray-600" title="Ampliar">
+            <button onClick={zoomIn} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             </button>
           </div>
@@ -454,28 +453,28 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
           <button
             onClick={handleExportPDF}
             disabled={isExporting}
-            className={`flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg shadow-lg transition-all font-bold active:transform active:scale-95 no-print ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex items-center gap-1.5 px-3 lg:px-5 py-2 lg:py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg shadow-lg transition-all font-bold active:transform active:scale-95 no-print ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isExporting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-3 w-3 lg:h-4 lg:w-4 border-2 border-white border-t-transparent"></div>
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
             )}
-            {isExporting ? 'GERANDO...' : 'SALVAR PDF'}
+            <span className="text-[10px] lg:text-xs">{isExporting ? '...' : 'PDF'}</span>
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto gantt-scroll-container" ref={containerRef}>
         <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container">
-          <div className="sticky left-0 z-30 bg-white border-r w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
+          <div className="sticky left-0 z-30 bg-white border-r w-32 sm:w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
             <div
-              className="border-b flex items-center px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[10px] tracking-wider sticky top-0 z-40"
+              className="border-b flex items-center px-2 lg:px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[9px] lg:text-[10px] tracking-wider sticky top-0 z-40"
               style={{ height: rowHeight }}
             >
-              Estrutura EAP / Tarefa
+              Tarefa
             </div>
             {(tasks || []).map((task) => {
               const level = task.level || 0;
@@ -485,10 +484,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
               return (
                 <div
                   key={task.id}
-                  className={`border-b flex items-center pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-sm' : 'text-gray-600 text-[11px]'}`}
+                  className={`border-b flex items-center pr-2 lg:pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-[10px] lg:text-sm' : 'text-gray-600 text-[9px] lg:text-[11px]'}`}
                   style={{
                     height: rowHeight,
-                    paddingLeft: `${16 + level * 20}px`
+                    paddingLeft: `${8 + level * 10}px`
                   }}
                 >
                   <div className="flex items-center gap-2 overflow-hidden w-full h-full">
