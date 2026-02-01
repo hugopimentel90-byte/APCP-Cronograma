@@ -376,16 +376,16 @@ const App: React.FC = () => {
   }, [cloudEnabled, syncToCloud]);
 
   const getResourceInitials = (resourceIds: string[]): string[] => {
-    return (resourceIds || []).map(id => {
-      const res = resources.find(r => r.id === id);
-      if (!res) return '?';
-      return res.name
-        .split(' ')
-        .filter(part => part.trim().length > 0)
-        .map(part => part[0].toUpperCase())
-        .join('')
-        .slice(0, 2);
-    });
+    return resources
+      .filter(r => resourceIds.includes(r.id))
+      .map(r => r.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2));
+  };
+
+  const formatDateBR = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
   };
 
   const handleDeleteImage = (taskId: string, imageId: string) => {
@@ -658,8 +658,8 @@ const App: React.FC = () => {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs text-gray-400">{task.startDate}</td>
-                            <td className={`px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs font-medium ${overdue ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{task.endDate}</td>
+                            <td className="px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs text-gray-400">{formatDateBR(task.startDate)}</td>
+                            <td className={`px-2 lg:px-4 py-4 text-center text-[10px] lg:text-xs font-medium ${overdue ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{formatDateBR(task.endDate)}</td>
                             <td className="px-2 lg:px-4 py-4 text-center text-xs text-gray-500 hidden sm:table-cell">{task.duration}d</td>
                             <td className="px-2 lg:px-4 py-4 text-center text-xs text-blue-600 font-bold hidden md:table-cell">{task.manHours || 0}h</td>
                             <td className="px-2 lg:px-4 py-4 text-center text-xs text-green-600 font-bold hidden md:table-cell">{task.realizedManHours || 0}h</td>

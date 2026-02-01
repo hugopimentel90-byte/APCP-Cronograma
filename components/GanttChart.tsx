@@ -257,7 +257,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onToggleCollapse, collap
                             {task.progress}% - {task.progress >= 100 ? 'Concluído' : isTaskOverdue ? 'Atrasado' : 'Em andamento'}
                           </span>
                           <span className="text-[9px] text-gray-500 leading-none">
-                            {task.startDate.split('-').reverse().slice(0, 2).join('/')} até {task.endDate.split('-').reverse().slice(0, 2).join('/')}
+                            {task.startDate.split('-').reverse().join('/')} até {task.endDate.split('-').reverse().join('/')}
                           </span>
                         </div>
                         {isCritical && (

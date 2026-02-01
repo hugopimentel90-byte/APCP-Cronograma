@@ -16,10 +16,7 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
     if (!dateStr) return "Sem data";
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Mês é zero-indexed em JS
-    const day = parseInt(parts[2], 10);
-    return new Date(year, month, day).toLocaleDateString('pt-BR');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
   };
 
   // Obtém todas as imagens de todas as tarefas
