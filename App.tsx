@@ -766,21 +766,21 @@ const App: React.FC = () => {
                   Adicionar Recurso
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                 {resources.map(res => (
-                  <div key={res.id} className="bg-white p-6 rounded-xl border shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow relative group/card">
+                  <div key={res.id} className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 hover:shadow-md transition-shadow relative group/card">
                     <button
                       onClick={() => { setResourceToDelete(res); setIsResourceDeleteModalOpen(true); }}
-                      className="absolute top-4 right-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover/card:opacity-100 transition-all"
+                      className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1 sm:p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover/card:opacity-100 transition-all"
                       title="Excluir Recurso"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      <svg className="w-3.5 h-3.5 sm:w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">{res.name[0]}</div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{res.name}</h3>
-                      <p className="text-xs text-gray-400 uppercase font-bold">{res.type}</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Disponibilidade: {res.availability}h/dia</p>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg sm:text-xl shrink-0">{res.name[0]}</div>
+                    <div className="text-center sm:text-left min-w-0 w-full">
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-base truncate">{res.name}</h3>
+                      <p className="text-[8px] sm:text-xs text-gray-400 uppercase font-bold truncate">{res.type}</p>
+                      <p className="text-[7px] sm:text-[10px] text-gray-500 mt-0.5 sm:mt-1">Disp: {res.availability}h/dia</p>
                     </div>
                   </div>
                 ))}

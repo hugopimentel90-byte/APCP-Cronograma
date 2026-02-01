@@ -63,7 +63,7 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Nenhum Registro Fotográfico</h2>
         <p className="text-gray-500 max-w-md">
-          Não há imagens anexadas às tarefas deste projeto no momento. 
+          Não há imagens anexadas às tarefas deste projeto no momento.
           Você pode adicionar registros editando as tarefas na aba EAP.
         </p>
       </div>
@@ -78,7 +78,7 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
             <h2 className="text-lg font-bold text-gray-900">Registros Fotográficos</h2>
             <p className="text-sm text-gray-500">Galeria de evidências coletadas durante a execução do projeto</p>
           </div>
-          
+
           <div className="relative group">
             <select
               value={filterTaskId}
@@ -103,10 +103,10 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-500">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 animate-in fade-in duration-500">
         {filteredImages.map((img) => (
-          <div 
-            key={img.id} 
+          <div
+            key={img.id}
             className="bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow group cursor-pointer flex flex-col relative"
             onClick={() => setSelectedImage(img)}
           >
@@ -118,38 +118,38 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
                     onDeleteImage(img.taskId, img.id);
                   }
                 }}
-                className="absolute top-2 right-2 z-10 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                className="absolute top-2 right-2 z-10 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                 title="Excluir Registro"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
             )}
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-              <img 
-                src={img.data} 
-                alt={img.description || img.name} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              <img
+                src={img.data}
+                alt={img.description || img.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <div className="bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100">
-                  <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-white/90 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100">
+                  <svg className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                   </svg>
                 </div>
               </div>
             </div>
-            <div className="p-4 flex flex-col flex-1 gap-2">
-              <div className="flex justify-between items-start gap-2">
-                <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase truncate max-w-[150px]">
+            <div className="p-2 sm:p-4 flex flex-col flex-1 gap-1 sm:gap-2">
+              <div className="flex justify-between items-start gap-1 sm:gap-2">
+                <span className="text-[7px] sm:text-[9px] bg-blue-50 text-blue-600 px-1.5 sm:px-2 py-0.5 rounded-full font-bold uppercase truncate max-w-full">
                   {img.taskName}
                 </span>
-                <span className="text-[9px] text-gray-400 font-bold whitespace-nowrap">
+                <span className="text-[7px] sm:text-[9px] text-gray-400 font-bold whitespace-nowrap">
                   {formatLocalDate(img.date)}
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-gray-800 line-clamp-2" title={img.description || img.name}>
+              <h3 className="text-[10px] sm:text-sm font-bold text-gray-800 line-clamp-2" title={img.description || img.name}>
                 {img.description || img.name}
               </h3>
             </div>
@@ -159,11 +159,11 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
 
       {/* Modal Visualizador Fullscreen */}
       {selectedImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
           onClick={() => setSelectedImage(null)}
         >
-          <button 
+          <button
             className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
             onClick={() => setSelectedImage(null)}
           >
@@ -171,15 +171,15 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          
-          <div 
+
+          <div
             className="max-w-5xl w-full flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="md:flex-1 bg-gray-100 flex items-center justify-center overflow-hidden">
-              <img 
-                src={selectedImage.data} 
-                alt={selectedImage.description} 
+              <img
+                src={selectedImage.data}
+                alt={selectedImage.description}
                 className="max-h-[70vh] w-full object-contain"
               />
             </div>
@@ -190,7 +190,7 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
                   <p className="text-blue-600 font-bold text-sm">{selectedImage.taskName}</p>
                 </div>
                 {onDeleteImage && (
-                   <button 
+                  <button
                     onClick={() => {
                       if (confirm("Deseja realmente excluir este registro fotográfico?")) {
                         onDeleteImage(selectedImage.taskId, selectedImage.id);
@@ -199,11 +199,11 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
                     }}
                     className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Excluir Registro"
-                   >
+                  >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                   </button>
+                  </button>
                 )}
               </div>
               <div>
@@ -215,7 +215,7 @@ const RegistrosTab: React.FC<RegistrosTabProps> = ({ tasks, onDeleteImage }) => 
                 <p className="text-gray-600 text-sm leading-relaxed">{selectedImage.description || 'Nenhuma descrição fornecida.'}</p>
               </div>
               <div className="mt-auto">
-                <button 
+                <button
                   onClick={() => {
                     const link = document.createElement('a');
                     link.href = selectedImage.data;
