@@ -1,4 +1,4 @@
-
+﻿
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Task, DependencyType } from '../types';
 import html2canvas from 'html2canvas';
@@ -22,30 +22,18 @@ interface DragPreview {
 }
 
 const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCollapse, collapsedTasks }) => {
-  // Timeline States (Desktop)
   const [draggingTask, setDraggingTask] = useState<string | null>(null);
   const [dragType, setDragType] = useState<DragType>(null);
   const [initialMouseX, setInitialMouseX] = useState(0);
   const [initialTaskDates, setInitialTaskDates] = useState<{ start: Date; end: Date } | null>(null);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [dayWidth, setDayWidth] = useState(40);
-
-  // Responsive State
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isExporting, setIsExporting] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
-
-  // Responsive Effect
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const parseLocalDate = (dateStr: string) => {
     if (!dateStr || typeof dateStr !== 'string') return new Date();
@@ -137,7 +125,8 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
   }, [minDate, totalDays]);
 
   /**
-   * Lógica Avançada de Caminho Crítico (CPM)
+   * L├│gica Avan├ºada de Caminho Cr├¡tico (CPM)
+   * Identifica tarefas com folga zero (Float = 0)
    */
   const criticalTaskIds = useMemo(() => {
     if (!tasks || tasks.length === 0) return new Set<string>();
@@ -145,6 +134,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
     const taskMap = new Map<string, Task>(tasks.map(t => [t.id, t]));
     const criticalIds = new Set<string>();
 
+    // 1. Identificar tarefas sucessoras (para o backward pass)
     const successors = new Map<string, string[]>();
     tasks.forEach(t => {
       (t.dependencies || []).forEach(dep => {
@@ -153,10 +143,15 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       });
     });
 
+    // 2. Determinar a data final do projeto (Early Finish m├íximo)
     const taskEnds = tasks.map(t => parseLocalDate(t.endDate).getTime()).filter(t => !isNaN(t));
     if (taskEnds.length === 0) return criticalIds;
     const projectEndMs = Math.max(...taskEnds);
 
+    // 3. Backward Pass: Come├ºar do fim e encontrar tarefas sem folga
+    // Uma tarefa ├® cr├¡tica se:
+    // a) Ela termina no final do projeto E n├úo tem sucessores cr├¡ticos OU
+    // b) Ela ├® predecessora imediata de uma tarefa cr├¡tica com folga zero
     const queue: string[] = tasks
       .filter(t => parseLocalDate(t.endDate).getTime() === projectEndMs)
       .map(t => t.id);
@@ -173,6 +168,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
 
       criticalIds.add(currentId);
 
+      // Retroceder para as predecessoras
       (currentTask.dependencies || []).forEach(dep => {
         const pred = taskMap.get(dep.taskId);
         if (!pred) return;
@@ -180,6 +176,8 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         const predEnd = parseLocalDate(pred.endDate);
         const currentStart = parseLocalDate(currentTask.startDate);
 
+        // Crit├®rio de folga zero (FS: predEnd e currentStart s├úo adjacentes)
+        // Usamos uma margem de 1 dia para considerar calend├írios e feriados flex├¡veis
         const slack = daysDiff(predEnd, currentStart);
         if (dep.type === DependencyType.FS && slack <= 1) {
           queue.push(pred.id);
@@ -191,6 +189,8 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       });
     }
 
+    // Se uma tarefa sum├írio (EAP) tem um filho cr├¡tico, ela tamb├®m ├® considerada no caminho cr├¡tico
+    // para fins de destaque visual de estrutura
     tasks.forEach(t => {
       if (t.hasChildren || parentIds.has(t.id)) {
         const hasCriticalChild = tasks.some(child => child.parentId === t.id && criticalIds.has(child.id));
@@ -293,6 +293,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         const succXStart = daysDiff(minDate, taskStart) * dayWidth;
         const succY = idx * rowHeight + rowHeight / 2;
 
+        // Uma depend├¬ncia ├® cr├¡tica se AMBAS as tarefas forem cr├¡ticas e a folga entre elas for zero/m├¡nima
         const isCriticalLine = criticalTaskIds.has(task.id) && criticalTaskIds.has(pred.id) && daysDiff(predEnd, taskStart) <= 1;
 
         let d = `M ${predXEnd} ${predY} L ${predXEnd + 10} ${predY} L ${predXEnd + 10} ${succY} L ${succXStart} ${succY}`;
@@ -312,8 +313,41 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: exportRef.current.scrollWidth + (isMobile ? 100 : 300),
+        width: exportRef.current.scrollWidth + 300,
         height: exportRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          const sidebar = clonedDoc.querySelector('.gantt-sidebar') as HTMLElement;
+          const container = clonedDoc.querySelector('.gantt-export-container') as HTMLElement;
+          const headers = clonedDoc.querySelectorAll('.sticky') as NodeListOf<HTMLElement>;
+
+          if (sidebar) {
+            sidebar.style.position = 'relative';
+            sidebar.style.width = '700px';
+            sidebar.style.minWidth = '700px';
+            sidebar.style.flexShrink = '0';
+            sidebar.style.boxShadow = 'none';
+          }
+
+          if (container) {
+            container.style.width = `${exportRef.current!.scrollWidth + 400}px`;
+            container.style.overflow = 'visible';
+          }
+
+          headers.forEach(h => {
+            h.style.position = 'relative';
+            h.style.left = '0';
+            h.style.top = '0';
+          });
+
+          const taskLabels = clonedDoc.querySelectorAll('.task-label-text') as NodeListOf<HTMLElement>;
+          taskLabels.forEach(label => {
+            label.style.display = 'block';
+            label.style.webkitLineClamp = 'unset';
+            label.style.overflow = 'visible';
+            label.style.whiteSpace = 'nowrap';
+            label.style.wordBreak = 'keep-all';
+          });
+        }
       });
 
       const imgData = canvas.toDataURL('image/png', 1.0);
@@ -327,6 +361,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
       pdf.save(`Cronograma_Gantt_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
+      alert('Houve um erro ao gerar o PDF.');
     } finally {
       setIsExporting(false);
     }
@@ -377,7 +412,6 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
 
   return (
     <div className="flex flex-col h-full bg-white border rounded-lg shadow-sm overflow-hidden select-none printable-gantt">
-      {/* Interactive Controls Header */}
       <div className="bg-gray-50 border-b px-2 lg:px-4 py-3 flex flex-col sm:flex-row items-center justify-between text-[10px] lg:text-xs no-print gap-4">
         <div className="flex flex-wrap items-center justify-center gap-3 lg:gap-6">
           <div className="flex items-center gap-1.5 lg:gap-2">
@@ -386,7 +420,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
           </div>
           <div className="flex items-center gap-1.5 lg:gap-2">
             <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 bg-rose-500 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
-            <span className="text-rose-600 font-bold uppercase tracking-tight">Crítico</span>
+            <span className="text-rose-600 font-bold uppercase tracking-tight">Cr├¡tico</span>
           </div>
           <div className="flex items-center gap-1.5 lg:gap-2">
             <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 bg-orange-100 border border-red-500 rounded-sm"></div>
@@ -395,30 +429,26 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 lg:gap-4 w-full sm:w-auto">
-          {!isMobile && (
-            <>
-              <div className="flex items-center p-0.5 lg:p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-                {(['day', 'week', 'month', 'year'] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => handleViewModeChange(mode)}
-                    className={`px-2 lg:px-3 py-1 rounded-md font-medium transition-all ${viewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
-                  >
-                    {mode === 'day' ? 'D' : mode === 'week' ? 'S' : mode === 'month' ? 'M' : 'A'}
-                  </button>
-                ))}
-              </div>
+          <div className="flex items-center p-0.5 lg:p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+            {(['day', 'week', 'month', 'year'] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`px-2 lg:px-3 py-1 rounded-md font-medium transition-all ${viewMode === mode ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                {mode === 'day' ? 'D' : mode === 'week' ? 'S' : mode === 'month' ? 'M' : 'A'}
+              </button>
+            ))}
+          </div>
 
-              <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg p-0.5 lg:p-1 shadow-sm">
-                <button onClick={zoomOut} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-                </button>
-                <button onClick={zoomIn} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                </button>
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-lg p-0.5 lg:p-1 shadow-sm">
+            <button onClick={zoomOut} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+            </button>
+            <button onClick={zoomIn} className="p-1 lg:p-1.5 hover:bg-gray-100 rounded text-gray-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            </button>
+          </div>
 
           <button
             onClick={handleExportPDF}
@@ -432,14 +462,13 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
             )}
-            <span className="text-[10px] lg:text-xs">EXPORTAR PDF</span>
+            <span className="text-[10px] lg:text-xs">{isExporting ? '...' : 'PDF'}</span>
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto gantt-scroll-container" ref={containerRef}>
         <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container">
-          {/* Sidebar */}
           <div className="sticky left-0 z-30 bg-white border-r w-40 sm:w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
             <div
               className="border-b flex items-center px-2 lg:px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[9px] lg:text-[10px] tracking-wider sticky top-0 z-40"
@@ -451,6 +480,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
               const level = task.level || 0;
               const isSummary = task.hasChildren || parentIds.has(task.id);
               const isCritical = criticalTaskIds.has(task.id);
+              const isTaskOverdue = !isSummary && isOverdue(task.endDate, task.progress);
 
               return (
                 <div
@@ -471,6 +501,17 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
                       <span className={`task-label-text block whitespace-normal break-words leading-[1.1] ${isCritical && !isSummary ? 'text-rose-700 font-semibold' : ''}`} title={task.name}>
                         {task.name}
                       </span>
+
+                      {/* Mobile Card-like detail Info */}
+                      {!isSummary && (
+                        <div className="flex lg:hidden items-center gap-1.5 mt-0.5 overflow-hidden">
+                          <div className="flex items-center gap-1 bg-gray-100 px-1 rounded-[3px] shrink-0">
+                            <div className={`w-1.5 h-1.5 rounded-full ${task.progress >= 100 ? 'bg-green-500' : isTaskOverdue ? 'bg-red-500' : isCritical ? 'bg-rose-500' : 'bg-blue-500'}`}></div>
+                            <span className="text-[7px] text-gray-500 font-bold uppercase">{task.progress}%</span>
+                          </div>
+                          <span className="text-[7px] text-gray-400 whitespace-nowrap">{task.startDate.split('-').slice(1).reverse().join('/')} - {task.endDate.split('-').slice(1).reverse().join('/')}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -478,127 +519,92 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
             })}
           </div>
 
-          {/* Timeline or Card View */}
-          {!isMobile ? (
-            // Desktop Timeline View
-            <div className="relative gantt-timeline-container flex-1 bg-slate-50/30">
-              <div className="flex border-b sticky top-0 bg-gray-50 z-10" style={{ height: rowHeight }}>
-                {renderTimelineHeader()}
-              </div>
-
-              <div className="relative" style={{ height: (tasks?.length || 0) * rowHeight, width: Math.max(0, (totalDays + 1) * dayWidth) }}>
-                <div className="absolute inset-0 flex pointer-events-none">
-                  {timelineDays.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`border-r h-full ${dayWidth > 15 ? 'opacity-30' : 'opacity-10'}`}
-                      style={{ width: dayWidth }}
-                    />
-                  ))}
-                </div>
-
-                <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
-                  <defs>
-                    <marker id="arrowhead-normal" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orientation="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" /></marker>
-                    <marker id="arrowhead-critical" markerWidth="12" markerHeight="9" refX="12" refY="4.5" orientation="auto"><polygon points="0 0, 12 4.5, 0 9" fill="#f43f5e" /></marker>
-                  </defs>
-                  {dependencyPaths}
-                </svg>
-
-                {(tasks || []).map((task, idx) => {
-                  const isBeingDragged = draggingTask === task.id;
-                  const currentStartDate = isBeingDragged && dragPreview ? dragPreview.startDate : task.startDate;
-                  const currentEndDate = isBeingDragged && dragPreview ? dragPreview.endDate : task.endDate;
-                  const currentDuration = isBeingDragged && dragPreview ? dragPreview.duration : task.duration;
-
-                  const s = parseLocalDate(currentStartDate);
-                  if (isNaN(s.getTime())) return null;
-                  const startOffset = daysDiff(minDate, s) * dayWidth;
-                  const barWidth = Math.max(dayWidth, (currentDuration + 1) * dayWidth);
-                  const isSummary = task.hasChildren || parentIds.has(task.id);
-                  const isCritical = criticalTaskIds.has(task.id);
-                  const isTaskOverdue = !isSummary && isOverdue(currentEndDate, task.progress);
-
-                  return (
-                    <div key={task.id} className={`absolute z-10 ${isBeingDragged ? 'z-50' : ''} transition-all duration-200`} style={{ top: idx * rowHeight + 10, left: startOffset, width: barWidth, height: rowHeight - 20 }}>
-                      {isSummary ? (
-                        <div className={`relative h-full flex items-center transition-all ${isCritical ? 'drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]' : ''}`}>
-                          <div className={`absolute inset-x-0 top-0 h-2 rounded-t-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
-                          <div className={`absolute left-0 top-0 w-2 h-4 rounded-bl-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
-                          <div className={`absolute right-0 top-0 w-2 h-4 rounded-br-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
-                        </div>
-                      ) : (
-                        <div
-                          className={`h-full rounded-md relative shadow-sm cursor-move ${isBeingDragged ? 'scale-105 shadow-xl opacity-90' : 'hover:scale-[1.02]'} transition-transform ${isCritical ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)]' : 'bg-blue-500'} ${isTaskOverdue ? 'ring-2 ring-red-500 ring-offset-1 animate-pulse' : ''}`}
-                          onMouseDown={(e) => handleMouseDown(e, task.id, 'move')}
-                        >
-                          <div className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize hover:bg-black/10 rounded-l" onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task.id, 'resize-left'); }} />
-                          <div className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize hover:bg-black/10 rounded-r" onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task.id, 'resize-right'); }} />
-
-                          {isCritical && (
-                            <div className="absolute inset-0 rounded-md border-2 border-rose-400/50 pointer-events-none" />
-                          )}
-
-                          {task.progress > 0 && (
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-slate-900 rounded-full left-1 opacity-90 transition-all pointer-events-none flex items-center"
-                              style={{ width: `calc(${Math.min(100, task.progress)}% - 8px)`, minWidth: '4px' }}
-                            >
-                              <div className="h-full w-full bg-slate-900 rounded-full" />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="relative gantt-timeline-container flex-1">
+            <div className="flex border-b sticky top-0 bg-gray-50 z-10" style={{ height: rowHeight }}>
+              {renderTimelineHeader()}
             </div>
-          ) : (
-            // Mobile Card View
-            <div className="relative gantt-timeline-container flex-1 bg-slate-50">
-              <div className="border-b sticky top-0 bg-gray-50 z-10 flex items-center px-4 font-bold text-gray-500 uppercase text-[9px] lg:text-[10px] tracking-wider" style={{ height: rowHeight }}>
-                Status e Prazos
+
+            <div className="relative" style={{ height: (tasks?.length || 0) * rowHeight, width: Math.max(0, (totalDays + 1) * dayWidth) }}>
+              <div className="absolute inset-0 flex pointer-events-none">
+                {timelineDays.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`border-r h-full ${dayWidth > 15 ? 'opacity-30' : 'opacity-10'}`}
+                    style={{ width: dayWidth }}
+                  />
+                ))}
               </div>
 
-              <div className="relative">
-                {(tasks || []).map((task, idx) => {
-                  const isSummary = task.hasChildren || parentIds.has(task.id);
-                  const isCritical = criticalTaskIds.has(task.id);
-                  const isTaskOverdue = !isSummary && isOverdue(task.endDate, task.progress);
+              <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+                <defs>
+                  <marker id="arrowhead-normal" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orientation="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" /></marker>
+                  <marker id="arrowhead-critical" markerWidth="12" markerHeight="9" refX="12" refY="4.5" orientation="auto"><polygon points="0 0, 12 4.5, 0 9" fill="#f43f5e" /></marker>
+                </defs>
+                {dependencyPaths}
+              </svg>
 
-                  if (isSummary) {
-                    return (
-                      <div key={task.id} className="border-b bg-slate-50/50" style={{ height: rowHeight }} />
-                    );
-                  }
+              {(tasks || []).map((task, idx) => {
+                const isBeingDragged = draggingTask === task.id;
+                const currentStartDate = isBeingDragged && dragPreview ? dragPreview.startDate : task.startDate;
+                const currentEndDate = isBeingDragged && dragPreview ? dragPreview.endDate : task.endDate;
+                const currentDuration = isBeingDragged && dragPreview ? dragPreview.duration : task.duration;
 
-                  return (
-                    <div key={task.id} className="border-b flex items-center px-4 gap-4" style={{ height: rowHeight }}>
-                      <div className="flex-1 flex items-center gap-3">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm bg-white min-w-[200px] ${isTaskOverdue ? 'border-red-200 bg-red-50' : 'border-gray-100'}`}>
-                          <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${task.progress >= 100 ? 'bg-green-500' : isTaskOverdue ? 'bg-red-500 animate-pulse' : isCritical ? 'bg-rose-500' : 'bg-blue-500'}`} />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-gray-700 leading-none mb-0.5">
-                              {task.progress}% - {task.progress >= 100 ? 'Concluído' : isTaskOverdue ? 'Atrasado' : 'Em andamento'}
-                            </span>
-                            <span className="text-[9px] text-gray-500 leading-none">
-                              {task.startDate.split('-').reverse().join('/')} até {task.endDate.split('-').reverse().join('/')}
+                const s = parseLocalDate(currentStartDate);
+                if (isNaN(s.getTime())) return null;
+                const startOffset = daysDiff(minDate, s) * dayWidth;
+                const barWidth = Math.max(dayWidth, (currentDuration + 1) * dayWidth);
+                const isSummary = task.hasChildren || parentIds.has(task.id);
+                const isCritical = criticalTaskIds.has(task.id);
+                const isTaskOverdue = !isSummary && isOverdue(currentEndDate, task.progress);
+
+                return (
+                  <div key={task.id} className={`absolute z-10 ${isBeingDragged ? 'z-50' : ''} transition-all duration-200`} style={{ top: idx * rowHeight + 10, left: startOffset, width: barWidth, height: rowHeight - 20 }}>
+                    {isSummary ? (
+                      <div className={`relative h-full flex items-center transition-all ${isCritical ? 'drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]' : ''}`}>
+                        <div className={`absolute inset-x-0 top-0 h-2 rounded-t-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
+                        <div className={`absolute left-0 top-0 w-2 h-4 rounded-bl-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
+                        <div className={`absolute right-0 top-0 w-2 h-4 rounded-br-sm ${isCritical ? 'bg-rose-700' : 'bg-slate-800'}`} />
+                      </div>
+                    ) : (
+                      <div
+                        className={`h-full rounded-md relative shadow-sm cursor-move ${isBeingDragged ? 'scale-105 shadow-xl opacity-90' : 'hover:scale-[1.02]'} transition-transform ${task.isMilestone ? 'bg-orange-500 w-5 h-5 rotate-45 -ml-2.5 mt-0.5 border-2 border-white' : isCritical ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)]' : 'bg-blue-500'} ${isTaskOverdue ? 'ring-2 ring-red-500 ring-offset-1 animate-pulse' : ''}`}
+                        onMouseDown={(e) => handleMouseDown(e, task.id, 'move')}
+                      >
+                        <div className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize hover:bg-black/10 rounded-l" onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task.id, 'resize-left'); }} />
+                        <div className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize hover:bg-black/10 rounded-r" onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task.id, 'resize-right'); }} />
+
+                        {isCritical && !task.isMilestone && (
+                          <div className="absolute inset-0 rounded-md border-2 border-rose-400/50 pointer-events-none" />
+                        )}
+
+                        {isTaskOverdue && (
+                          <div className="absolute -top-1 -right-1 z-20">
+                            <span className="flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
                             </span>
                           </div>
-                          {isCritical && (
-                            <div className="ml-auto">
-                              <span className="text-[8px] font-extrabold text-rose-600 border border-rose-200 bg-rose-50 px-1 rounded">CRÍTICO</span>
-                            </div>
-                          )}
-                        </div>
+                        )}
+
+                        {!task.isMilestone && task.progress > 0 && (
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-slate-900 rounded-full left-1 opacity-90 transition-all pointer-events-none flex items-center"
+                            style={{ width: `calc(${Math.min(100, task.progress)}% - 8px)`, minWidth: '4px' }}
+                          >
+                            <div className="h-full w-full bg-slate-900 rounded-full" />
+                          </div>
+                        )}
+
+                        {!task.isMilestone && (
+                          <div className="h-full rounded-l-md pointer-events-none opacity-20 bg-black/10" style={{ width: `${Math.min(100, task.progress)}%` }} />
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
