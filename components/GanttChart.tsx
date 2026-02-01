@@ -469,7 +469,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
 
       <div className="flex-1 overflow-auto gantt-scroll-container" ref={containerRef}>
         <div ref={exportRef} className="flex min-w-full bg-white gantt-export-container">
-          <div className="sticky left-0 z-30 bg-white border-r w-32 sm:w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
+          <div className="sticky left-0 z-30 bg-white border-r w-40 sm:w-72 lg:w-80 flex-shrink-0 gantt-sidebar shadow-sm">
             <div
               className="border-b flex items-center px-2 lg:px-4 font-bold text-gray-500 bg-gray-50 uppercase text-[9px] lg:text-[10px] tracking-wider sticky top-0 z-40"
               style={{ height: rowHeight }}
@@ -480,6 +480,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
               const level = task.level || 0;
               const isSummary = task.hasChildren || parentIds.has(task.id);
               const isCritical = criticalTaskIds.has(task.id);
+              const isTaskOverdue = !isSummary && isOverdue(task.endDate, task.progress);
 
               return (
                 <div
@@ -487,21 +488,31 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, onTaskChange, onToggleCo
                   className={`border-b flex items-center pr-2 lg:pr-4 leading-tight transition-colors ${isCritical ? 'bg-rose-50/30' : ''} ${isSummary ? 'font-bold text-gray-900 bg-slate-50 text-[10px] lg:text-sm' : 'text-gray-600 text-[9px] lg:text-[11px]'}`}
                   style={{
                     height: rowHeight,
-                    paddingLeft: `${8 + level * 10}px`
+                    paddingLeft: `${4 + level * 6}px`
                   }}
                 >
-                  <div className="flex items-center gap-2 overflow-hidden w-full h-full">
+                  <div className="flex items-center gap-1.5 overflow-hidden w-full h-full py-1">
                     {task.hasChildren && (
                       <button onClick={() => onToggleCollapse(task.id)} className="p-1 hover:bg-gray-200 rounded flex-shrink-0">
-                        <svg className={`w-3.5 h-3.5 transition-transform ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                        <svg className={`w-3 h-3 lg:w-3.5 lg:h-3.5 transition-transform ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                       </button>
                     )}
-                    {level > 0 && !task.hasChildren && !parentIds.has(task.id) && (
-                      <div className="w-2 h-2 border-l border-b border-gray-300 -mt-2 flex-shrink-0 ml-1"></div>
-                    )}
-                    <span className={`task-label-text block overflow-hidden ${isCritical && !isSummary ? 'text-rose-700 font-semibold' : ''}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }} title={task.name}>
-                      {task.name}
-                    </span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className={`task-label-text block whitespace-normal break-words leading-[1.1] ${isCritical && !isSummary ? 'text-rose-700 font-semibold' : ''}`} title={task.name}>
+                        {task.name}
+                      </span>
+
+                      {/* Mobile Card-like detail Info */}
+                      {!isSummary && (
+                        <div className="flex lg:hidden items-center gap-1.5 mt-0.5 overflow-hidden">
+                          <div className="flex items-center gap-1 bg-gray-100 px-1 rounded-[3px] shrink-0">
+                            <div className={`w-1.5 h-1.5 rounded-full ${task.progress >= 100 ? 'bg-green-500' : isTaskOverdue ? 'bg-red-500' : isCritical ? 'bg-rose-500' : 'bg-blue-500'}`}></div>
+                            <span className="text-[7px] text-gray-500 font-bold uppercase">{task.progress}%</span>
+                          </div>
+                          <span className="text-[7px] text-gray-400 whitespace-nowrap">{task.startDate.split('-').slice(1).reverse().join('/')} - {task.endDate.split('-').slice(1).reverse().join('/')}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

@@ -102,9 +102,14 @@ const App: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  const filteredProjects = useMemo(() =>
+    projects.filter(p => p.name.includes("Poti")),
+    [projects]
+  );
+
   const activeProject = useMemo(() =>
-    projects.find(p => p.id === activeProjectId) || projects[0],
-    [projects, activeProjectId]
+    filteredProjects.find(p => p.id === activeProjectId) || filteredProjects[0] || projects[0],
+    [filteredProjects, activeProjectId, projects]
   );
 
   const activeTasks = useMemo(() =>
@@ -525,7 +530,7 @@ const App: React.FC = () => {
                 value={activeProjectId}
                 onChange={(e) => setActiveProjectId(e.target.value)}
               >
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {filteredProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <span className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_COLORS[activeProject.status]}`}>
                 {activeProject.status}
@@ -632,9 +637,9 @@ const App: React.FC = () => {
                             className={`border-b hover:bg-slate-50 group transition-colors duration-200 ${overdue ? 'bg-red-50/30' : ''} ${isRoot ? 'cursor-move' : ''}`}
                           >
                             <td className="px-4 lg:px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors" style={{ paddingLeft: `${16 + task.level * 16}px` }}>
-                              <div className="flex items-center gap-2 max-w-[150px] lg:max-w-none">
+                              <div className="flex items-center gap-2 lg:max-w-none">
                                 {task.hasChildren && (
-                                  <button onClick={() => toggleCollapse(task.id)} className="p-1 hover:bg-gray-200 rounded">
+                                  <button onClick={() => toggleCollapse(task.id)} className="p-1 hover:bg-gray-200 rounded flex-shrink-0">
                                     <svg className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                                   </button>
                                 )}
@@ -643,7 +648,7 @@ const App: React.FC = () => {
                                   : task.hasChildren
                                     ? 'text-xs lg:text-sm font-bold text-slate-800'
                                     : 'text-xs lg:text-sm text-slate-600'
-                                  } flex items-center gap-1.5 lg:gap-2 truncate`}>
+                                  } flex items-center gap-1.5 lg:gap-2 whitespace-normal break-words`}>
                                   {task.name}
                                   {overdue && (
                                     <span className="shrink-0 text-[8px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold uppercase animate-pulse">
