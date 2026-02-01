@@ -148,6 +148,15 @@ const App: React.FC = () => {
       }
     });
 
+    // Sort children for each parent
+    taskMap.forEach(task => {
+      task.children.sort((aId, bId) => {
+        const taskA = taskMap.get(aId);
+        const taskB = taskMap.get(bId);
+        return (taskA?.orderIndex || 0) - (taskB?.orderIndex || 0);
+      });
+    });
+
     // Sort root tasks by orderIndex
     roots.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
@@ -627,8 +636,7 @@ const App: React.FC = () => {
                             }}
                             onDragOver={(e) => {
                               e.preventDefault();
-                              const draggedParentId = e.dataTransfer.types.includes('parentid') ? e.dataTransfer.getData('parentId') : null;
-                              // Simple visual feedback - we check parentId compatibility on Drop
+                              // We check parentId compatibility on Drop to keep it simple and performant
                               e.currentTarget.classList.add('bg-blue-50/50');
                             }}
                             onDragLeave={(e) => {
