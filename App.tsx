@@ -589,7 +589,7 @@ const App: React.FC = () => {
                   <table className="w-full text-left min-w-[700px] lg:min-w-[1000px]">
                     <thead className="bg-gray-50 border-b">
                       <tr className="text-[10px] uppercase text-gray-400 font-bold border-b bg-gray-50/50">
-                        <th className="px-4 lg:px-6 py-4 sticky left-0 bg-gray-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Tarefa</th>
+                        <th className="px-4 lg:px-6 py-4 sticky left-0 bg-gray-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-40 sm:w-72 lg:w-80">Tarefa</th>
                         <th className="px-2 lg:px-4 py-4 text-center">Início</th>
                         <th className="px-2 lg:px-4 py-4 text-center">Término</th>
                         <th className="px-2 lg:px-4 py-4 text-center hidden sm:table-cell">Duração</th>
@@ -636,8 +636,8 @@ const App: React.FC = () => {
                             }}
                             className={`border-b hover:bg-slate-50 group transition-colors duration-200 ${overdue ? 'bg-red-50/30' : ''} ${isRoot ? 'cursor-move' : ''}`}
                           >
-                            <td className="px-4 lg:px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors" style={{ paddingLeft: `${16 + task.level * 16}px` }}>
-                              <div className="flex items-center gap-2 lg:max-w-none">
+                            <td className="px-4 lg:px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors w-40 sm:w-72 lg:w-80" style={{ paddingLeft: `${16 + task.level * 16}px` }}>
+                              <div className="flex items-center gap-2 lg:max-w-none min-w-0">
                                 {task.hasChildren && (
                                   <button onClick={() => toggleCollapse(task.id)} className="p-1 hover:bg-gray-200 rounded flex-shrink-0">
                                     <svg className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${collapsedTasks.has(task.id) ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
