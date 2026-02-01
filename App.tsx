@@ -405,30 +405,38 @@ const App: React.FC = () => {
     if (draggedId === targetId) return;
 
     setTasks(prev => {
+      const draggedTask = prev.find(t => t.id === draggedId);
+      const targetTask = prev.find(t => t.id === targetId);
+
+      if (!draggedTask || !targetTask || draggedTask.parentId !== targetTask.parentId) {
+        return prev;
+      }
+
+      const parentId = draggedTask.parentId;
       const projectTasks = prev.filter(t => t.projectId === activeProjectId);
       const otherTasks = prev.filter(t => t.projectId !== activeProjectId);
 
-      const rootTasks = projectTasks
-        .filter(t => !t.parentId || t.parentId === '')
+      const siblingTasks = projectTasks
+        .filter(t => (t.parentId || '') === (parentId || ''))
         .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
-      const draggedIndex = rootTasks.findIndex(t => t.id === draggedId);
-      const targetIndex = rootTasks.findIndex(t => t.id === targetId);
+      const draggedIndex = siblingTasks.findIndex(t => t.id === draggedId);
+      const targetIndex = siblingTasks.findIndex(t => t.id === targetId);
 
       if (draggedIndex === -1 || targetIndex === -1) return prev;
 
-      const newRootTasks = [...rootTasks];
-      const [removed] = newRootTasks.splice(draggedIndex, 1);
-      newRootTasks.splice(targetIndex, 0, removed);
+      const newSiblingTasks = [...siblingTasks];
+      const [removed] = newSiblingTasks.splice(draggedIndex, 1);
+      newSiblingTasks.splice(targetIndex, 0, removed);
 
-      const updatedRootTasks = newRootTasks.map((t, index) => ({
+      const updatedSiblingTasks = newSiblingTasks.map((t, index) => ({
         ...t,
         orderIndex: index
       }));
 
       // Find which tasks actually changed to avoid unnecessary cloud updates
-      const changedTasks = updatedRootTasks.filter((task, idx) => {
-        const original = rootTasks.find(t => t.id === task.id);
+      const changedTasks = updatedSiblingTasks.filter(task => {
+        const original = siblingTasks.find(t => t.id === task.id);
         return original?.orderIndex !== task.orderIndex;
       });
 
@@ -441,7 +449,7 @@ const App: React.FC = () => {
       }
 
       const updatedProjectTasks = projectTasks.map(t => {
-        const updated = updatedRootTasks.find(rt => rt.id === t.id);
+        const updated = updatedSiblingTasks.find(rt => rt.id === t.id);
         return updated || t;
       });
 
@@ -608,33 +616,35 @@ const App: React.FC = () => {
                         return (
                           <tr
                             key={task.id}
-                            draggable={isRoot}
+                            draggable={true}
                             onDragStart={(e) => {
-                              if (!isRoot) return;
                               e.dataTransfer.setData('taskId', task.id);
+                              e.dataTransfer.setData('parentId', task.parentId || '');
                               e.currentTarget.classList.add('opacity-50');
                             }}
                             onDragEnd={(e) => {
                               e.currentTarget.classList.remove('opacity-50');
                             }}
                             onDragOver={(e) => {
-                              if (!isRoot) return;
                               e.preventDefault();
+                              const draggedParentId = e.dataTransfer.types.includes('parentid') ? e.dataTransfer.getData('parentId') : null;
+                              // Simple visual feedback - we check parentId compatibility on Drop
                               e.currentTarget.classList.add('bg-blue-50/50');
                             }}
                             onDragLeave={(e) => {
                               e.currentTarget.classList.remove('bg-blue-50/50');
                             }}
                             onDrop={(e) => {
-                              if (!isRoot) return;
                               e.preventDefault();
                               e.currentTarget.classList.remove('bg-blue-50/50');
                               const draggedId = e.dataTransfer.getData('taskId');
-                              if (draggedId && draggedId !== task.id) {
+                              const draggedParentId = e.dataTransfer.getData('parentId');
+
+                              if (draggedId && draggedId !== task.id && draggedParentId === (task.parentId || '')) {
                                 handleTaskReorder(draggedId, task.id);
                               }
                             }}
-                            className={`border-b hover:bg-slate-50 group transition-colors duration-200 ${overdue ? 'bg-red-50/30' : ''} ${isRoot ? 'cursor-move' : ''}`}
+                            className={`border-b hover:bg-slate-50 group transition-colors duration-200 ${overdue ? 'bg-red-50/30' : ''} cursor-move`}
                           >
                             <td className="px-4 lg:px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] transition-colors w-40 sm:w-72 lg:w-80" style={{ paddingLeft: `${16 + task.level * 16}px` }}>
                               <div className="flex items-center gap-2 lg:max-w-none min-w-0">
