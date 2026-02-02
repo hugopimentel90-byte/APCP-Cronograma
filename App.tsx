@@ -105,14 +105,11 @@ const App: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
-  const filteredProjects = useMemo(() =>
-    projects.filter(p => p.name.includes("Poti")),
-    [projects]
-  );
+  const filteredProjects = useMemo(() => projects, [projects]);
 
   const activeProject = useMemo(() =>
-    filteredProjects.find(p => p.id === activeProjectId) || filteredProjects[0] || projects[0],
-    [filteredProjects, activeProjectId, projects]
+    projects.find(p => p.id === activeProjectId) || projects[0],
+    [activeProjectId, projects]
   );
 
   const activeTasks = useMemo(() =>
@@ -546,7 +543,7 @@ const App: React.FC = () => {
                 value={activeProjectId}
                 onChange={(e) => setActiveProjectId(e.target.value)}
               >
-                {filteredProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               {activeProject && (
                 <span className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_COLORS[activeProject.status]}`}>
