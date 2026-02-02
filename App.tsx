@@ -30,7 +30,7 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [notes, setNotes] = useState<TaskNote[]>([]);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [cloudEnabled, setCloudEnabled] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -481,7 +481,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+    <div key={isAuthenticated ? 'auth' : 'guest'} className="flex h-screen bg-slate-50 overflow-hidden relative">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
