@@ -59,8 +59,11 @@ const App: React.FC = () => {
   const [pendingChange, setPendingChange] = useState<{ updatedTask: Task; oldTask: Task } | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     let mounted = true;
     const fetchData = async () => {
+      setIsLoading(true);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Timeout ao conectar com o servidor")), 15000)
       );
@@ -78,12 +81,10 @@ const App: React.FC = () => {
         if (!mounted) return;
         const [pRes, tRes, rRes, hRes, nRes] = results;
         if (pRes.status === 'fulfilled') {
-          // Se a conexão com o banco funcionou, habilitamos o modo nuvem
           setCloudEnabled(true);
 
           if (pRes.value?.length > 0) {
             setProjects(pRes.value);
-            // Tenta manter o projeto ativo anterior ou o primeiro da lista
             setActiveProjectId(prev => {
               const potiProject = pRes.value.find((p: Project) => p.name.includes("Poti"));
               if (potiProject) return potiProject.id;
@@ -107,7 +108,7 @@ const App: React.FC = () => {
     };
     fetchData();
     return () => { mounted = false; };
-  }, []);
+  }, [isAuthenticated]);
 
   const filteredProjects = useMemo(() => projects, [projects]);
 
@@ -466,6 +467,10 @@ const App: React.FC = () => {
     });
   }, [activeProjectId, cloudEnabled, syncToCloud]);
 
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
   if (isLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 gap-4 text-slate-400">
@@ -473,10 +478,6 @@ const App: React.FC = () => {
         <p className="font-medium animate-pulse">Carregando Project Master...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
 
   return (
