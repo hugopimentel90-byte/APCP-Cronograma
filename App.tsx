@@ -17,6 +17,7 @@ import TaskCompletionModal from './components/TaskCompletionModal';
 import BaselineTab from './components/BaselineTab';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import { db } from './services/supabase';
+import Login from './components/Login';
 
 type TabType = 'dashboard' | 'tasks' | 'gantt' | 'baseline' | 'history' | 'resources' | 'notes' | 'registros';
 
@@ -32,6 +33,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [cloudEnabled, setCloudEnabled] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
 
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isProjectEditModalOpen, setIsProjectEditModalOpen] = useState(false);
@@ -471,6 +475,10 @@ const App: React.FC = () => {
     );
   }
 
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden relative">
       {/* Mobile Menu Overlay */}
@@ -511,6 +519,18 @@ const App: React.FC = () => {
               <item.icon className="w-5 h-5 mr-3 shrink-0" /> {(!isSidebarCollapsed || isMobileMenuOpen) && item.label}
             </button>
           ))}
+          <button
+            onClick={() => {
+              localStorage.removeItem('isAuthenticated');
+              setIsAuthenticated(false);
+            }}
+            className="w-full flex items-center rounded-lg px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors mt-auto border-t"
+          >
+            <svg className="w-5 h-5 mr-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            {(!isSidebarCollapsed || isMobileMenuOpen) && "Sair do Sistema"}
+          </button>
         </nav>
       </aside>
 
