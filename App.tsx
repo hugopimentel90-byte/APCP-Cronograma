@@ -25,7 +25,7 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [resources, setResources] = useState<Resource[]>(INITIAL_RESOURCES);
-  const [activeProjectId, setActiveProjectId] = useState<string>(INITIAL_PROJECTS[0].id);
+  const [activeProjectId, setActiveProjectId] = useState<string>(INITIAL_PROJECTS[0]?.id || '');
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [notes, setNotes] = useState<TaskNote[]>([]);
 
@@ -81,6 +81,9 @@ const App: React.FC = () => {
             setProjects(pRes.value);
             // Tenta manter o projeto ativo anterior ou o primeiro da lista
             setActiveProjectId(prev => {
+              const potiProject = pRes.value.find((p: Project) => p.name.includes("Poti"));
+              if (potiProject) return potiProject.id;
+
               const exists = pRes.value.find((p: Project) => p.id === prev);
               return exists ? prev : pRes.value[0].id;
             });
@@ -450,11 +453,7 @@ const App: React.FC = () => {
       });
 
       if (cloudEnabled && changedTasks.length > 0) {
-        syncToCloud(async () => {
-          for (const t of changedTasks) {
-            await db.upsertTask(t);
-          }
-        });
+        syncToCloud(() => db.upsertTasks(changedTasks));
       }
 
       const updatedProjectTasks = projectTasks.map(t => {
@@ -549,9 +548,11 @@ const App: React.FC = () => {
               >
                 {filteredProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              <span className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_COLORS[activeProject.status]}`}>
-                {activeProject.status}
-              </span>
+              {activeProject && (
+                <span className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${STATUS_COLORS[activeProject.status]}`}>
+                  {activeProject.status}
+                </span>
+              )}
             </div>
             <div className="hidden sm:flex items-center gap-1 shrink-0">
               <button
@@ -574,14 +575,16 @@ const App: React.FC = () => {
               </button>
             </div>
           </div>
-          <button onClick={() => setIsNewProjectModalOpen(true)} className="bg-blue-600 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-700 transition-colors shrink-0">
-            <span className="hidden lg:inline">Novo Projeto</span>
-            <span className="lg:hidden">+ Novo</span>
-          </button>
+          {activeProject && (
+            <button onClick={() => setIsNewProjectModalOpen(true)} className="bg-blue-600 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold hover:bg-blue-700 transition-colors shrink-0">
+              <span className="hidden lg:inline">Novo Projeto</span>
+              <span className="lg:hidden">+ Novo</span>
+            </button>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-          {activeTab === 'dashboard' && (
+          {activeTab === 'dashboard' && activeProject && (
             <Dashboard
               project={activeProject}
               tasks={activeTasks}

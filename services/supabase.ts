@@ -118,6 +118,11 @@ export const db = {
     const { error } = await supabase.from('tasks').upsert(payload);
     if (error) throw error;
   },
+  upsertTasks: async (tasks: any[]) => {
+    const payload = tasks.map(mapTask.toDB);
+    const { error } = await supabase.from('tasks').upsert(payload);
+    if (error) throw error;
+  },
   deleteTask: async (id: string) => {
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) throw error;
