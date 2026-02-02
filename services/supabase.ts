@@ -113,6 +113,12 @@ export const db = {
     if (error) throw error;
     return (data || []).map(mapTask.fromDB);
   },
+  getShallowTasks: async () => {
+    // Busca tudo exceto a coluna 'images' que é pesada
+    const { data, error } = await supabase.from('tasks').select('id, name, start_date, end_date, duration, progress, priority, dependencies, resource_ids, parent_id, project_id, order_index, man_hours, realized_man_hours, is_milestone, cost, realized_cost, realized_resource_ids');
+    if (error) throw error;
+    return (data || []).map(mapTask.fromDB);
+  },
   upsertTask: async (task: any) => {
     const payload = mapTask.toDB(task);
     const { error } = await supabase.from('tasks').upsert(payload);

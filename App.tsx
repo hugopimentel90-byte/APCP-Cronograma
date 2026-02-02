@@ -71,7 +71,7 @@ const App: React.FC = () => {
         const results: any = await Promise.race([
           Promise.allSettled([
             db.getProjects(),
-            db.getTasks(),
+            db.getShallowTasks(),
             db.getResources(),
             db.getHistory(),
             db.getNotes()
@@ -109,6 +109,21 @@ const App: React.FC = () => {
     fetchData();
     return () => { mounted = false; };
   }, [isAuthenticated]);
+
+  // Carregamento sob demanda das imagens ao entrar na aba de Registros
+  useEffect(() => {
+    if (activeTab === 'registros' && cloudEnabled) {
+      const loadFullTasks = async () => {
+        try {
+          const fullTasks = await db.getTasks();
+          setTasks(fullTasks);
+        } catch (e) {
+          console.error("Erro ao carregar imagens:", e);
+        }
+      };
+      loadFullTasks();
+    }
+  }, [activeTab, cloudEnabled]);
 
   const filteredProjects = useMemo(() => projects, [projects]);
 
