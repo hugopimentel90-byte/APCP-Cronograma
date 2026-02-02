@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [isResourceDeleteModalOpen, setIsResourceDeleteModalOpen] = useState(false);
   const [isProjectDeleteModalOpen, setIsProjectDeleteModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isImagesLoading, setIsImagesLoading] = useState(false);
 
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -113,17 +114,30 @@ const App: React.FC = () => {
   // Carregamento sob demanda das imagens ao entrar na aba de Registros
   useEffect(() => {
     if (activeTab === 'registros' && cloudEnabled) {
+      // Verifica se já temos imagens carregadas para evitar re-fetch desnecessário
+      const hasImages = tasks.some(t => t.images && t.images.length > 0);
+      if (hasImages) return;
+
       const loadFullTasks = async () => {
+        setIsImagesLoading(true);
         try {
           const fullTasks = await db.getTasks();
-          setTasks(fullTasks);
+          // Mescla as imagens nas tarefas existentes sem perder a referência do projeto ativo
+          setTasks(prev => {
+            return prev.map(t => {
+              const fullTask = fullTasks.find(ft => ft.id === t.id);
+              return fullTask ? { ...t, images: fullTask.images } : t;
+            });
+          });
         } catch (e) {
           console.error("Erro ao carregar imagens:", e);
+        } finally {
+          setIsImagesLoading(false);
         }
       };
       loadFullTasks();
     }
-  }, [activeTab, cloudEnabled]);
+  }, [activeTab, cloudEnabled, tasks.length]);
 
   const filteredProjects = useMemo(() => projects, [projects]);
 
@@ -803,10 +817,18 @@ const App: React.FC = () => {
             if (cloudEnabled) syncToCloud(() => db.deleteNote(id));
           }} />}
           {activeTab === 'registros' && (
-            <RegistrosTab
-              tasks={activeTasks}
-              onDeleteImage={handleDeleteImage}
-            />
+            <div className="relative">
+              {isImagesLoading && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center min-h-[400px] rounded-xl">
+                  <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                  <p className="text-blue-700 font-bold animate-pulse">Baixando Registros Fotográficos (Pode demorar alguns segundos)...</p>
+                </div>
+              )}
+              <RegistrosTab
+                tasks={activeTasks}
+                onDeleteImage={handleDeleteImage}
+              />
+            </div>
           )}
           {activeTab === 'resources' && (
             <div className="space-y-6">
