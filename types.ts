@@ -71,7 +71,7 @@ export interface TaskHistoryEntry {
   taskId: string;
   projectId: string;
   taskName: string;
-  field: 'startDate' | 'endDate' | 'duration' | 'combined' | 'manHours';
+  field: 'startDate' | 'endDate' | 'duration' | 'combined' | 'manHours' | 'images';
   oldValue: string;
   newValue: string;
   reason: string;

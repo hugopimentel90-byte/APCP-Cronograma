@@ -433,14 +433,28 @@ const App: React.FC = () => {
 
   const handleDeleteImage = (taskId: string, imageId: string) => {
     setTasks(prev => {
-      const updatedTasks = prev.map(t =>
-        t.id === taskId
-          ? { ...t, images: (t.images || []).filter(img => img.id !== imageId) }
-          : t
-      );
-      const updatedTask = updatedTasks.find(t => t.id === taskId);
-      if (cloudEnabled && updatedTask) syncToCloud(() => db.upsertTask(updatedTask));
-      return updatedTasks;
+      const task = prev.find(t => t.id === taskId);
+      if (!task) return prev;
+
+      const imageToDelete = (task.images || []).find(img => img.id === imageId);
+      const updatedImages = (task.images || []).filter(img => img.id !== imageId);
+      const updatedTask = { ...task, images: updatedImages };
+
+      if (imageToDelete) {
+        const historyEntry = createHistoryEntry(
+          taskId,
+          task.name,
+          'images',
+          imageToDelete.name || imageToDelete.description || 'Imagem sem nome',
+          'Removido',
+          'Exclusão de registro fotográfico'
+        );
+        setHistory(h => [historyEntry, ...h]);
+        if (cloudEnabled) syncToCloud(() => db.insertHistory(historyEntry));
+      }
+
+      if (cloudEnabled) syncToCloud(() => db.upsertTask(updatedTask));
+      return prev.map(t => t.id === taskId ? updatedTask : t);
     });
   };
 
