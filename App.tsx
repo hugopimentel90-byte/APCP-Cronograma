@@ -259,68 +259,102 @@ const App: React.FC = () => {
   };
 
   const handleTaskSubmit = useCallback((taskData: Task, note?: string) => {
-    const existingTask = tasks.find(t => t.id === taskData.id);
-
-    if (existingTask) {
-      const dateChanged = existingTask.startDate !== taskData.startDate || existingTask.endDate !== taskData.endDate;
-      if (dateChanged) {
-        setPendingChange({ updatedTask: taskData, oldTask: existingTask });
-        setIsReasonModalOpen(true);
-        return;
-      }
-    }
-
-    // Mesclar dados existentes com os novos vindos do modal
-    const mergedTask = existingTask
-      ? {
-        ...existingTask, // Mantém orderIndex, priority e outras propriedades não alteradas pelo modal
-        ...taskData,
-        images: [...(existingTask.images || []), ...(taskData.images || [])]
-      }
-      : {
-        ...taskData,
-        orderIndex: taskData.orderIndex ?? (tasks.filter(t => (t.parentId || '') === (taskData.parentId || '')).length)
-      };
-
-    // Primeiro atualiza o estado local
     setTasks(prev => {
-      const exists = prev.find(t => t.id === mergedTask.id);
-      if (exists) {
-        return prev.map(t => t.id === mergedTask.id ? mergedTask : t);
+      const existingTask = prev.find(t => t.id === taskData.id);
+
+      if (existingTask) {
+        const dateChanged = existingTask.startDate !== taskData.startDate || existingTask.endDate !== taskData.endDate;
+        if (dateChanged) {
+          setPendingChange({ updatedTask: taskData, oldTask: existingTask });
+          setIsReasonModalOpen(true);
+          return prev;
+        }
       }
-      return [...prev, mergedTask];
+
+      const mergedTask = existingTask
+        ? {
+          ...existingTask,
+          ...taskData,
+          // Se existingTask.images for undefined (shallow), mantemos o que veio dele
+          // Note: Se taskData tiver novas imagens, deviam ser unidas às do banco.
+          // A melhor prática é carregar antes de editar.
+          images: existingTask.images === undefined ? undefined : [...(existingTask.images || []), ...(taskData.images || [])]
+        }
+        : {
+          ...taskData,
+          orderIndex: taskData.orderIndex ?? (prev.filter(t => (t.parentId || '') === (taskData.parentId || '')).length)
+        };
+
+      if (cloudEnabled) syncToCloud(() => db.upsertTask(mergedTask));
+
+      // Histórico
+      if (existingTask) {
+        const historyEntries: TaskHistoryEntry[] = [];
+        if (existingTask.name !== mergedTask.name)
+          historyEntries.push(createHistoryEntry(mergedTask.id, mergedTask.name, 'combined' as any, existingTask.name, mergedTask.name, "Alteração de nome"));
+        if (existingTask.manHours !== mergedTask.manHours)
+          historyEntries.push(createHistoryEntry(mergedTask.id, mergedTask.name, 'manHours', String(existingTask.manHours), String(mergedTask.manHours), "Alteração de esforço"));
+
+        if (historyEntries.length > 0) {
+          setHistory(h => [...historyEntries, ...h]);
+          if (cloudEnabled) historyEntries.forEach(entry => syncToCloud(() => db.insertHistory(entry)));
+        }
+      }
+
+      if (note) {
+        const newNote: TaskNote = {
+          id: `note-${Date.now()}`,
+          taskId: mergedTask.id,
+          projectId: activeProjectId,
+          taskName: mergedTask.name,
+          text: note,
+          timestamp: new Date().toISOString()
+        };
+        setNotes(n => [newNote, ...n]);
+        if (cloudEnabled) syncToCloud(() => db.insertNote(newNote));
+      }
+
+      return existingTask
+        ? prev.map(t => t.id === mergedTask.id ? mergedTask : t)
+        : [...prev, mergedTask];
     });
+  }, [cloudEnabled, activeProjectId, syncToCloud, createHistoryEntry]);
 
-    // Registra histórico se necessário
-    if (existingTask) {
-      const historyEntries: TaskHistoryEntry[] = [];
-      if (existingTask.name !== mergedTask.name)
-        historyEntries.push(createHistoryEntry(mergedTask.id, mergedTask.name, 'combined' as any, existingTask.name, mergedTask.name, "Alteração de nome"));
-      if (existingTask.manHours !== mergedTask.manHours)
-        historyEntries.push(createHistoryEntry(mergedTask.id, mergedTask.name, 'manHours', String(existingTask.manHours), String(mergedTask.manHours), "Alteração de esforço"));
+  const handleStartEditTask = async (task: Task) => {
+    // Se as imagens já estão carregadas ou são conhecidas como vazias ([]), abrimos direto
+    if (task.images !== undefined) {
+      setTaskToEdit(task);
+      setInitialParentId('');
+      setIsTaskModalOpen(true);
+      return;
+    }
 
-      if (historyEntries.length > 0) {
-        setHistory(h => [...historyEntries, ...h]);
-        if (cloudEnabled) historyEntries.forEach(entry => syncToCloud(() => db.insertHistory(entry)));
+    // Caso contrário, buscamos o dado completo no banco antes de editar
+    setIsLoading(true); // Reusa o loading global ou poderiamos ter um específico
+    try {
+      const fullTasks = await db.getTasks();
+      const fullTask = fullTasks.find(t => t.id === task.id);
+
+      // Atualiza o estado local para futuras referências e abre o modal com o dado completo
+      if (fullTask) {
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, images: fullTask.images } : t));
+        setTaskToEdit({ ...task, images: fullTask.images });
+      } else {
+        setTaskToEdit(task);
       }
-    }
 
-    // Sincroniza com a nuvem
-    if (cloudEnabled) syncToCloud(() => db.upsertTask(mergedTask));
-
-    if (note) {
-      const newNote: TaskNote = {
-        id: `note-${Date.now()}`,
-        taskId: mergedTask.id,
-        projectId: activeProjectId,
-        taskName: mergedTask.name,
-        text: note,
-        timestamp: new Date().toISOString()
-      };
-      setNotes(prev => [newNote, ...prev]);
-      if (cloudEnabled) syncToCloud(() => db.insertNote(newNote));
+      setInitialParentId('');
+      setIsTaskModalOpen(true);
+    } catch (e) {
+      console.error("Erro ao carregar dados completos da tarefa:", e);
+      // Em caso de erro, abrimos o que temos (com segurança do handleTaskSubmit)
+      setTaskToEdit(task);
+      setInitialParentId('');
+      setIsTaskModalOpen(true);
+    } finally {
+      setIsLoading(false);
     }
-  }, [cloudEnabled, activeProjectId, tasks, syncToCloud]);
+  };
 
   const handleDeleteProject = useCallback(async () => {
     if (projects.length <= 1) {
@@ -780,7 +814,7 @@ const App: React.FC = () => {
                                 >
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                                 </button>
-                                <button onClick={() => { setTaskToEdit(task); setInitialParentId(''); setIsTaskModalOpen(true); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded" title="Editar Tarefa">
+                                <button onClick={() => handleStartEditTask(task)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded" title="Editar Tarefa">
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </button>
                                 <button onClick={() => { setTaskToDelete(task); setIsTaskDeleteModalOpen(true); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded" title="Excluir Tarefa">

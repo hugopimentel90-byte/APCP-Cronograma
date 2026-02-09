@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, Resource, DependencyType, TaskImage } from '../types';
+import { db } from '../services/supabase';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -24,6 +24,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   initialParentId
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     startDate: '',
@@ -55,7 +56,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
         progress: taskToEdit.progress,
         parentId: taskToEdit.parentId || '',
         note: '',
-        images: [], // Não carrega imagens existentes para o modal (conforme solicitado)
+        images: [], // Não carregamos as imagens existentes aqui para evitar confusão no merge
       });
     } else {
       setFormData({
@@ -129,36 +130,41 @@ const TaskModal: React.FC<TaskModalProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    setIsUploading(true);
     const newImages: TaskImage[] = [];
-
-    // Gera data local YYYY-MM-DD evitando o deslocamento do toISOString
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const data = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+    // Usamos o ID da tarefa existente ou o ID temporário que será usado se for nova
+    const currentTaskId = taskToEdit ? taskToEdit.id : `t-${Date.now()}`;
 
-      newImages.push({
-        id: `img-${Date.now()}-${i}`,
-        data,
-        name: file.name,
-        description: '',
-        date: today
-      });
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Upload para o Storage
+        const publicUrl = await db.uploadImage(currentTaskId, file.name, file);
+
+        newImages.push({
+          id: `img-${Date.now()}-${i}`,
+          data: publicUrl, // Agora armazena a URL pública
+          name: file.name,
+          description: '',
+          date: today
+        });
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      alert("Falha ao fazer upload de uma ou mais imagens. Verifique se o bucket 'task-photos' existe no seu Supabase.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...newImages]
-    }));
-
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const updateImageField = (id: string, field: keyof TaskImage, value: string) => {
@@ -324,8 +330,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Upload de Imagens
+                {isUploading ? 'Enviando...' : 'Upload de Imagens'}
               </button>
+              {isUploading && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-20 rounded-lg">
+                  <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                </div>
+              )}
               <input
                 type="file"
                 multiple

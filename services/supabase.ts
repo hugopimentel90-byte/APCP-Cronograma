@@ -51,7 +51,7 @@ const mapTask = {
     realized_man_hours: t.realizedManHours,
     realized_resource_ids: t.realizedResourceIds,
     realized_cost: t.realizedCost,
-    images: t.images || [], // JSONB column handles array of objects
+    images: t.images,
     order_index: t.orderIndex || 0
   }),
   fromDB: (t: any) => ({
@@ -72,7 +72,7 @@ const mapTask = {
     realizedManHours: t.realized_man_hours,
     realizedResourceIds: t.realized_resource_ids,
     realizedCost: t.realized_cost,
-    images: t.images || [],
+    images: t.images,
     orderIndex: t.order_index || 0
   })
 };
@@ -205,5 +205,18 @@ export const db = {
   deleteNote: async (id: string) => {
     const { error } = await supabase.from('notes').delete().eq('id', id);
     if (error) throw error;
+  },
+  uploadImage: async (taskId: string, fileName: string, blob: Blob) => {
+    const path = `${taskId}/${Date.now()}_${fileName}`;
+    const { data, error } = await supabase.storage
+      .from('task-photos')
+      .upload(path, blob);
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('task-photos')
+      .getPublicUrl(path);
+
+    return publicUrl;
   }
 };
