@@ -58,6 +58,7 @@ const App: React.FC = () => {
 
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChange, setPendingChange] = useState<{ updatedTask: Task; oldTask: Task } | null>(null);
+  const [isFullTasksLoaded, setIsFullTasksLoaded] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -113,11 +114,7 @@ const App: React.FC = () => {
 
   // Carregamento sob demanda das imagens ao entrar na aba de Registros
   useEffect(() => {
-    if (activeTab === 'registros' && cloudEnabled) {
-      // Verifica se já temos imagens carregadas para evitar re-fetch desnecessário
-      const hasImages = tasks.some(t => t.images && t.images.length > 0);
-      if (hasImages) return;
-
+    if (activeTab === 'registros' && cloudEnabled && !isFullTasksLoaded) {
       const loadFullTasks = async () => {
         setIsImagesLoading(true);
         try {
@@ -129,6 +126,7 @@ const App: React.FC = () => {
               return fullTask ? { ...t, images: fullTask.images } : t;
             });
           });
+          setIsFullTasksLoaded(true);
         } catch (e) {
           console.error("Erro ao carregar imagens:", e);
         } finally {
@@ -137,7 +135,7 @@ const App: React.FC = () => {
       };
       loadFullTasks();
     }
-  }, [activeTab, cloudEnabled, tasks.length]);
+  }, [activeTab, cloudEnabled, isFullTasksLoaded]);
 
   const filteredProjects = useMemo(() => projects, [projects]);
 
@@ -275,10 +273,11 @@ const App: React.FC = () => {
         ? {
           ...existingTask,
           ...taskData,
-          // Se existingTask.images for undefined (shallow), mantemos o que veio dele
-          // Note: Se taskData tiver novas imagens, deviam ser unidas às do banco.
-          // A melhor prática é carregar antes de editar.
-          images: existingTask.images === undefined ? undefined : [...(existingTask.images || []), ...(taskData.images || [])]
+          // Preservamos imagens existentes se a tarefa for shallow.
+          // Mas se taskData trouxer novas imagens (upload no modal), unimos.
+          images: existingTask.images === undefined
+            ? (taskData.images && taskData.images.length > 0 ? taskData.images : undefined)
+            : [...(existingTask.images || []), ...(taskData.images || [])]
         }
         : {
           ...taskData,
@@ -339,6 +338,7 @@ const App: React.FC = () => {
       if (fullTask) {
         setTasks(prev => prev.map(t => t.id === task.id ? { ...t, images: fullTask.images } : t));
         setTaskToEdit({ ...task, images: fullTask.images });
+        setIsFullTasksLoaded(true); // Se baixamos tudo, marcamos como carregado
       } else {
         setTaskToEdit(task);
       }
@@ -391,7 +391,11 @@ const App: React.FC = () => {
     const { updatedTask, oldTask } = pendingChange;
 
     // Mesclar imagens para a mudança pendente também
-    const mergedTask = { ...updatedTask, images: [...(oldTask.images || []), ...(updatedTask.images || [])] };
+    // Importante: Manter undefined se oldTask for shallow para não zerar no banco
+    const mergedTask = {
+      ...updatedTask,
+      images: oldTask.images === undefined ? undefined : [...(oldTask.images || []), ...(updatedTask.images || [])]
+    };
 
     const historyEntry = createHistoryEntry(
       mergedTask.id,
