@@ -13,13 +13,13 @@ interface TaskModalProps {
   initialParentId?: string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  projectId, 
-  resources, 
-  existingTasks, 
+const TaskModal: React.FC<TaskModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  projectId,
+  resources,
+  existingTasks,
   taskToEdit,
   initialParentId
 }) => {
@@ -82,15 +82,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
     e.preventDefault();
     const start = new Date(formData.startDate);
     const end = formData.isMilestone ? start : new Date(formData.endDate);
-    
+
     if (isNaN(start.getTime()) || (!formData.isMilestone && isNaN(end.getTime()))) {
       alert("Por favor, insira datas válidas.");
       return;
     }
 
     const duration = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const dependencies = formData.dependencyTaskId 
-      ? [{ taskId: formData.dependencyTaskId, type: formData.dependencyType }] 
+    const dependencies = formData.dependencyTaskId
+      ? [{ taskId: formData.dependencyTaskId, type: formData.dependencyType }]
       : [];
 
     const taskData: Task = {
@@ -108,9 +108,9 @@ const TaskModal: React.FC<TaskModalProps> = ({
       priority: taskToEdit ? taskToEdit.priority : 'Medium',
       dependencies,
       parentId: formData.parentId || undefined,
-      realizedManHours: taskToEdit?.realizedManHours,
       realizedResourceIds: taskToEdit?.realizedResourceIds,
       images: formData.images,
+      orderIndex: taskToEdit?.orderIndex,
     };
     onSubmit(taskData, formData.note.trim() || undefined);
     onClose();
@@ -130,7 +130,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
     if (!files || files.length === 0) return;
 
     const newImages: TaskImage[] = [];
-    
+
     // Gera data local YYYY-MM-DD evitando o deslocamento do toISOString
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -178,7 +178,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
   const availableParents = existingTasks.filter(t => {
     if (!taskToEdit) return true;
     if (t.id === taskToEdit.id) return false;
-    return true; 
+    return true;
   });
 
   return (
@@ -222,7 +222,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 ))}
               </select>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-2">
                 <input

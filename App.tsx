@@ -187,12 +187,16 @@ const App: React.FC = () => {
       task.children.sort((aId, bId) => {
         const taskA = taskMap.get(aId);
         const taskB = taskMap.get(bId);
-        return (taskA?.orderIndex || 0) - (taskB?.orderIndex || 0);
+        const diff = (taskA?.orderIndex || 0) - (taskB?.orderIndex || 0);
+        return diff !== 0 ? diff : aId.localeCompare(bId);
       });
     });
 
     // Sort root tasks by orderIndex
-    roots.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    roots.sort((a, b) => {
+      const diff = (a.orderIndex || 0) - (b.orderIndex || 0);
+      return diff !== 0 ? diff : a.id.localeCompare(b.id);
+    });
 
     const flattened: any[] = [];
     const buildFlat = (id: string, level: number) => {
@@ -266,10 +270,17 @@ const App: React.FC = () => {
       }
     }
 
-    // Mesclar imagens existentes com novas imagens vindas do modal
+    // Mesclar dados existentes com os novos vindos do modal
     const mergedTask = existingTask
-      ? { ...taskData, images: [...(existingTask.images || []), ...(taskData.images || [])] }
-      : taskData;
+      ? {
+        ...existingTask, // Mantém orderIndex, priority e outras propriedades não alteradas pelo modal
+        ...taskData,
+        images: [...(existingTask.images || []), ...(taskData.images || [])]
+      }
+      : {
+        ...taskData,
+        orderIndex: taskData.orderIndex ?? (tasks.filter(t => (t.parentId || '') === (taskData.parentId || '')).length)
+      };
 
     // Primeiro atualiza o estado local
     setTasks(prev => {
